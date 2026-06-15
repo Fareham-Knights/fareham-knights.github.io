@@ -656,7 +656,6 @@ function renderResults() {
   }
 
   const s = standings[0];
-  const points = (s.wins * 3) + s.draws;
   const goalDiff = s.goalsFor - s.goalsAgainst;
 
   // Build form string from last 5 played fixtures (chronological order)
@@ -672,8 +671,8 @@ function renderResults() {
 
   let html = '<div class="section"><h3>Results</h3>' +
     '<table class="table">' +
-    '<tr><th>Played</th><th>Wins</th><th>Draws</th><th>Losses</th><th>GF</th><th>GA</th><th>GD</th><th>Pts</th></tr>' +
-    '<tr><td>' + s.played + '</td><td>' + s.wins + '</td><td>' + s.draws + '</td><td>' + s.losses + '</td><td>' + s.goalsFor + '</td><td>' + s.goalsAgainst + '</td><td>' + goalDiff + '</td><td style="font-weight:700;color:var(--crimson);font-size:16px;">' + points + '</td></tr>' +
+    '<tr><th>Played</th><th>Wins</th><th>Draws</th><th>Losses</th><th>GF</th><th>GA</th><th>GD</th></tr>' +
+    '<tr><td>' + s.played + '</td><td>' + s.wins + '</td><td>' + s.draws + '</td><td>' + s.losses + '</td><td>' + s.goalsFor + '</td><td>' + s.goalsAgainst + '</td><td>' + goalDiff + '</td></tr>' +
     '</table>' +
     (formHtml ? '<div style="margin-top:20px;"><div style="font-size:12px;font-weight:600;color:var(--grey-600);margin-bottom:6px;">FORM (LAST ' + lastFive.length + ')</div><div class="form-string">' + formHtml.trim() + '</div></div>' : '') +
     '</div>';
