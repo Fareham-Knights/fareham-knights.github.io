@@ -150,6 +150,73 @@
     text-align: center;
     margin-top: 4px;
   }
+  .match-notes {
+    grid-column: 1 / -1;
+    font-size: 12px;
+    color: rgba(255,255,255,0.8);
+    background: rgba(255,255,255,0.08);
+    border-radius: 6px;
+    padding: 8px 10px;
+    text-align: left;
+    margin-top: 8px;
+  }
+  .match-notes.light { color: var(--grey-600); background: var(--grey-50); }
+  .availability-section {
+    grid-column: 1 / -1;
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(255,255,255,0.15);
+    text-align: left;
+  }
+  .availability-section.light { border-top-color: var(--grey-200); }
+  .availability-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 13px;
+    letter-spacing: 2px;
+    color: var(--gold);
+    margin-bottom: 6px;
+    text-align: center;
+  }
+  .availability-section.light .availability-title { color: var(--crimson); }
+  .availability-summary {
+    font-size: 12px;
+    color: rgba(255,255,255,0.7);
+    text-align: center;
+    margin-bottom: 10px;
+  }
+  .availability-section.light .availability-summary { color: var(--grey-600); }
+  .availability-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .availability-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(255,255,255,0.08);
+    border-radius: 6px;
+    padding: 6px 8px;
+    font-size: 13px;
+    color: var(--white);
+    flex: 1 1 45%;
+  }
+  .availability-section.light .availability-row { background: var(--grey-50); color: var(--grey-800); }
+  .avail-btn {
+    border: 1px solid rgba(255,255,255,0.3);
+    background: transparent;
+    color: rgba(255,255,255,0.6);
+    border-radius: 4px;
+    width: 26px;
+    height: 26px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-left: 4px;
+  }
+  .availability-section.light .avail-btn { border-color: var(--grey-200); color: var(--grey-400); }
+  .avail-btn.yes.active { background: #16a34a; border-color: #16a34a; color: var(--white); }
+  .avail-btn.no.active { background: var(--red); border-color: var(--red); color: var(--white); }
   .refresh-btn {
     position: fixed;
     bottom: 20px;
@@ -233,7 +300,7 @@
   <div class="tabs">
     <button class="tab active" onclick="switchTab('fixtures')">📅 Fixtures</button>
     <button class="tab" onclick="switchTab('results')">📊 Results</button>
-    <button class="tab" onclick="switchTab('scorers')">⚽ Top Scorers</button>
+    <button class="tab" onclick="switchTab('stats')">🏅 Player Stats</button>
     <button class="tab" onclick="switchTab('squad')">🎽 Squad</button>
   </div>
 
@@ -245,8 +312,8 @@
     <div id="resultsContent"><div class="loading-overlay">Loading results…</div></div>
   </div>
 
-  <div id="tab-scorers" class="tab-content">
-    <div id="scorersContent"><div class="loading-overlay">Loading scorers…</div></div>
+  <div id="tab-stats" class="tab-content">
+    <div id="statsContent"><div class="loading-overlay">Loading player stats…</div></div>
   </div>
 
   <div id="tab-squad" class="tab-content">
@@ -288,6 +355,7 @@ let fixtures = [];
 let results = {};
 let goalScorers = {};
 let squad = [];
+let availability = {};
 
 async function sbFetch(path, options = {}) {
   // Reads work for everyone; writes only succeed if the request carries a
@@ -313,9 +381,10 @@ async function loadAndRender() {
   await loadFixtures();
   await loadResults();
   await loadSquad();
+  await loadAvailability();
   renderFixtures();
   renderResults();
-  renderScorers();
+  renderPlayerStats();
   renderSquad();
   populateMatchSelect();
 }
@@ -420,6 +489,10 @@ async function renderAdminContent(email) {
         <label>Location (optional)</label>
         <input type="text" id="fixtureLocation" placeholder="e.g., Cams Alders, Fareham">
       </div>
+      <div class="form-group">
+        <label>Comments (optional)</label>
+        <textarea id="fixtureComments" rows="3" placeholder="e.g., Parking is £2 at the clubhouse, pitch is the astro behind the school" style="width:100%;padding:8px 12px;border:1.5px solid var(--grey-200);border-radius:6px;font-size:14px;font-family:'Inter',sans-serif;outline:none;resize:vertical;"></textarea>
+      </div>
       <button class="btn" onclick="addFixture()">Add Fixture</button>
     </div>
 
@@ -447,6 +520,13 @@ async function renderAdminContent(email) {
             ${PLAYERS.map(p => '<option>' + p + '</option>').join('')}
           </select>
         </div>
+        <div class="form-group">
+          <label>Goalkeeper (for clean sheet tracking)</label>
+          <select id="goalkeeperSelect">
+            <option value="">-- None --</option>
+            ${PLAYERS.map(p => '<option>' + p + '</option>').join('')}
+          </select>
+        </div>
         <h3 style="margin-top:20px;margin-bottom:12px;">Goal Scorers</h3>
         <div id="goalScorersList"></div>
         <button class="btn" style="margin-top:12px;" onclick="addGoalScorerInput()">+ Add Goal Scorer</button>
@@ -469,7 +549,7 @@ async function loadResults() {
   const data = await sbFetch('knights_match_results?select=*');
   results = {};
   data.forEach(r => {
-    results[r.fixture_id] = { knights: r.knights_goals, opponent: r.opponent_goals, potm: r.player_of_match };
+    results[r.fixture_id] = { knights: r.knights_goals, opponent: r.opponent_goals, potm: r.player_of_match, goalkeeper: r.goalkeeper };
   });
 
   const goalData = await sbFetch('knights_goal_scorers?select=*');
@@ -487,10 +567,19 @@ async function loadSquad() {
   }
 }
 
+async function loadAvailability() {
+  const data = await sbFetch('knights_availability?select=*');
+  availability = {};
+  data.forEach(a => {
+    if (!availability[a.fixture_id]) availability[a.fixture_id] = {};
+    availability[a.fixture_id][a.player_id] = a.status;
+  });
+}
+
 // ── Tabs ────────────────────────────────────────────────────────────────
 function switchTab(name) {
   document.querySelectorAll('.tab').forEach((t, i) => {
-    t.classList.toggle('active', ['fixtures','results','scorers','squad'][i] === name);
+    t.classList.toggle('active', ['fixtures','results','stats','squad'][i] === name);
   });
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
@@ -508,6 +597,79 @@ function formatDate(dateStr) {
 
 function mapLink(location) {
   return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(location);
+}
+
+// Free-text extra info for a fixture (parking, entrance, pitch details).
+// Pass light=true on white match cards, omit/false for the dark hero card.
+function buildNotesLine(comments, light) {
+  if (!comments) return '';
+  return '<div class="match-notes' + (light ? ' light' : '') + '">📝 ' + comments + '</div>';
+}
+
+// "Who's coming?" widget for a fixture: open voting, anyone can set anyone's
+// status. Returns '' until the squad has been populated via the admin tab.
+// Pass light=true when placing this on a white match card rather than the
+// dark hero card.
+function buildAvailabilitySection(fixtureId, light) {
+  if (squad.length === 0) return '';
+
+  const fixtureAvail = availability[fixtureId] || {};
+  let yes = 0, no = 0, pending = 0;
+  squad.forEach(p => {
+    const st = fixtureAvail[p.id];
+    if (st === 'yes') yes++;
+    else if (st === 'no') no++;
+    else pending++;
+  });
+
+  let rows = '';
+  squad.forEach(p => {
+    const st = fixtureAvail[p.id];
+    rows += '<div class="availability-row">' +
+      '<span>' + p.name + '</span>' +
+      '<span>' +
+      '<button class="avail-btn yes' + (st === 'yes' ? ' active' : '') + '" onclick="setAvailability(' + fixtureId + ',' + p.id + ",'yes')\">✓</button>" +
+      '<button class="avail-btn no' + (st === 'no' ? ' active' : '') + '" onclick="setAvailability(' + fixtureId + ',' + p.id + ",'no')\">✕</button>" +
+      '</span>' +
+      '</div>';
+  });
+
+  return '<div class="availability-section' + (light ? ' light' : '') + '">' +
+    '<div class="availability-title">WHO\'S COMING?</div>' +
+    '<div class="availability-summary">' + yes + ' going · ' + no + ' not going · ' + pending + ' awaiting</div>' +
+    '<div class="availability-grid">' + rows + '</div>' +
+    '</div>';
+}
+
+async function setAvailability(fixtureId, playerId, status) {
+  const current = (availability[fixtureId] || {})[playerId];
+  try {
+    if (current === status) {
+      // Tapping the already-active option again clears it back to "no
+      // response", rather than forcing a switch to the other option.
+      await sbFetch('knights_availability?fixture_id=eq.' + fixtureId + '&player_id=eq.' + playerId, { method: 'DELETE' });
+    } else {
+      await sbFetch('knights_availability?on_conflict=fixture_id,player_id', {
+        method: 'POST',
+        headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
+        body: JSON.stringify([{ fixture_id: fixtureId, player_id: playerId, status }])
+      });
+    }
+    await loadAvailability();
+    renderFixtures();
+  } catch(e) {
+    showToast('Error: ' + e.message, true);
+  }
+}
+
+// Billy is the squad's only keeper, so he's the default for a new result
+// unless he's explicitly marked as not coming to this fixture. Update the
+// name here if that ever changes.
+function defaultGoalkeeper(fixtureId) {
+  const billy = squad.find(p => p.name === 'Billy');
+  if (!billy) return '';
+  const status = (availability[fixtureId] || {})[billy.id];
+  return status === 'no' ? '' : 'Billy';
 }
 
 // Builds the card for one fixture, whether it's awaiting a result (shows
@@ -557,13 +719,18 @@ function buildMatchCard(f) {
     locationLine = '<div class="match-scorers" style="grid-column: 1 / -1;"><a href="' + mapLink(f.location) + '" target="_blank" rel="noopener" style="color:var(--crimson);">📍 ' + f.location + '</a></div>';
   }
 
+  // "Who's coming?" for fixtures that haven't been played yet
+  const availabilitySection = isPlayed ? '' : buildAvailabilitySection(f.id, true);
+
   return '<div class="match-card">' +
     '<div class="match-team home">Knights<div class="match-meta">' + formatDate(f.date) + '</div></div>' +
     scoreHtml +
     '<div class="match-team away">' + f.opponent + '<div class="match-meta">' + (result ? result : f.home_away) + '</div></div>' +
     locationLine +
+    buildNotesLine(f.comments, true) +
     scorersLine +
     potmLine +
+    availabilitySection +
     '</div>';
 }
 
@@ -615,7 +782,9 @@ function renderFixtures() {
       '<div class="next-match-teams">Knights vs ' + nextMatch.opponent + '</div>' +
       '<div class="next-match-detail">' + formatDate(nextMatch.date) + ' · ' + timeStr + ' · ' + nextMatch.home_away + '</div>' +
       locationLine +
+      buildNotesLine(nextMatch.comments) +
       '<div class="next-match-countdown">' + countdownText + '</div>' +
+      buildAvailabilitySection(nextMatch.id) +
       '</div>';
   } else if (upcoming.length === 0) {
     html += '<div class="next-match-card">' +
@@ -660,9 +829,9 @@ function renderResults() {
 
   // Build form string from last 5 played fixtures (chronological order)
   const playedFixtures = fixtures.filter(f => results[f.id] !== undefined);
-  const lastFive = playedFixtures.slice(-5);
+  const recentForm = playedFixtures.slice(-10);
   let formHtml = '';
-  lastFive.forEach(f => {
+  recentForm.forEach(f => {
     const res = results[f.id];
     if (res.knights > res.opponent) formHtml += '<span class="w">W</span> ';
     else if (res.knights === res.opponent) formHtml += '<span class="d">D</span> ';
@@ -674,7 +843,7 @@ function renderResults() {
     '<tr><th>Played</th><th>Wins</th><th>Draws</th><th>Losses</th><th>GF</th><th>GA</th><th>GD</th></tr>' +
     '<tr><td>' + s.played + '</td><td>' + s.wins + '</td><td>' + s.draws + '</td><td>' + s.losses + '</td><td>' + s.goalsFor + '</td><td>' + s.goalsAgainst + '</td><td>' + goalDiff + '</td></tr>' +
     '</table>' +
-    (formHtml ? '<div style="margin-top:20px;"><div style="font-size:12px;font-weight:600;color:var(--grey-600);margin-bottom:6px;">FORM (LAST ' + lastFive.length + ')</div><div class="form-string">' + formHtml.trim() + '</div></div>' : '') +
+    (formHtml ? '<div style="margin-top:20px;"><div style="font-size:12px;font-weight:600;color:var(--grey-600);margin-bottom:6px;">FORM (LAST ' + recentForm.length + ')</div><div class="form-string">' + formHtml.trim() + '</div></div>' : '') +
     '</div>';
 
   // Match-by-match results, most recent first
@@ -684,34 +853,42 @@ function renderResults() {
   container.innerHTML = html;
 }
 
-// ── Top Scorers tab ─────────────────────────────────────────────────────
-function renderScorers() {
-  const container = document.getElementById('scorersContent');
+// ── Player Stats tab ────────────────────────────────────────────────────
+function renderPlayerStats() {
+  const container = document.getElementById('statsContent');
 
-  const scorersMap = {};
-  Object.values(goalScorers).forEach(matchGoals => {
-    matchGoals.forEach(g => {
-      if (!scorersMap[g.player]) scorersMap[g.player] = 0;
-      scorersMap[g.player] += g.goals;
-    });
-  });
-
-  const sorted = Object.entries(scorersMap).sort((a, b) => b[1] - a[1]);
-
-  if (sorted.length === 0) {
-    container.innerHTML = '<div class="empty-state">No goals recorded yet</div>';
+  if (squad.length === 0) {
+    container.innerHTML = '<div class="empty-state">Squad list coming soon</div>';
     return;
   }
 
-  let html = '';
-  sorted.forEach((entry, i) => {
-    const rank = i + 1;
-    html += '<div class="leaderboard-item">' +
-      '<div class="leaderboard-rank">' + rank + '</div>' +
-      '<div class="leaderboard-name">' + entry[0] + '</div>' +
-      '<div class="leaderboard-goals">' + entry[1] + '</div>' +
-      '</div>';
+  const playedFixtures = fixtures.filter(f => results[f.id] !== undefined);
+
+  const stats = squad.map(p => {
+    let played = 0, goals = 0, cleanSheets = 0, potm = 0;
+    playedFixtures.forEach(f => {
+      const res = results[f.id];
+      if ((availability[f.id] || {})[p.id] === 'yes') played++;
+      if (res.potm === p.name) potm++;
+      if (res.goalkeeper === p.name && res.opponent === 0) cleanSheets++;
+      (goalScorers[f.id] || []).forEach(s => {
+        if (s.player === p.name) goals += s.goals;
+      });
+    });
+    return { name: p.name, played, goals, cleanSheets, potm };
   });
+
+  stats.sort((a, b) => b.goals - a.goals || b.potm - a.potm || b.played - a.played);
+
+  let html = '<div class="section"><h3>Player Stats</h3>' +
+    '<table class="table">' +
+    '<tr><th>Player</th><th>P</th><th>G</th><th>CS</th><th>POTM</th></tr>';
+  stats.forEach(s => {
+    html += '<tr><td>' + s.name + '</td><td>' + s.played + '</td><td>' + s.goals + '</td><td>' + s.cleanSheets + '</td><td>' + s.potm + '</td></tr>';
+  });
+  html += '</table>' +
+    '<div style="font-size:11px;color:var(--grey-400);margin-top:10px;">P = matches attended (based on "Who\'s coming?" yes votes) · G = goals · CS = clean sheets as goalkeeper · POTM = Player of the Match awards</div>' +
+    '</div>';
 
   container.innerHTML = html;
 }
@@ -840,6 +1017,7 @@ function loadMatchForResult() {
   document.getElementById('knightsGoals').value = res.knights || '';
   document.getElementById('opponentGoals').value = res.opponent || '';
   document.getElementById('potmSelect').value = res.potm || '';
+  document.getElementById('goalkeeperSelect').value = res.goalkeeper || defaultGoalkeeper(matchId);
 
   const scorers = goalScorers[matchId] || [];
   const list = document.getElementById('goalScorersList');
@@ -869,6 +1047,7 @@ async function addFixture() {
   const time = document.getElementById('fixtureTime').value;
   const homeAway = document.getElementById('fixtureHomeAway').value;
   const location = document.getElementById('fixtureLocation').value.trim() || null;
+  const comments = document.getElementById('fixtureComments').value.trim() || null;
 
   if (!opponent || !date || !time) { showToast('Fill in all fields', true); return; }
 
@@ -877,13 +1056,14 @@ async function addFixture() {
   try {
     await sbFetch('knights_fixtures', {
       method: 'POST',
-      body: JSON.stringify([{ opponent, date, kickoff_time: kickoff, home_away: homeAway, location }])
+      body: JSON.stringify([{ opponent, date, kickoff_time: kickoff, home_away: homeAway, location, comments }])
     });
 
     document.getElementById('fixtureOpponent').value = '';
     document.getElementById('fixtureDate').value = '';
     document.getElementById('fixtureTime').value = '';
     document.getElementById('fixtureLocation').value = '';
+    document.getElementById('fixtureComments').value = '';
 
     await loadFixtures();
     renderFixtures();
@@ -899,6 +1079,7 @@ async function saveResult() {
   const knightsGoals = parseInt(document.getElementById('knightsGoals').value) || 0;
   const opponentGoals = parseInt(document.getElementById('opponentGoals').value) || 0;
   const potm = document.getElementById('potmSelect').value || null;
+  const goalkeeper = document.getElementById('goalkeeperSelect').value || null;
 
   const scorerInputs = document.querySelectorAll('#goalScorersList .goal-inputs');
   const scorers = [];
@@ -917,7 +1098,7 @@ async function saveResult() {
     // Insert new result
     await sbFetch('knights_match_results', {
       method: 'POST',
-      body: JSON.stringify([{ fixture_id: matchId, knights_goals: knightsGoals, opponent_goals: opponentGoals, player_of_match: potm }])
+      body: JSON.stringify([{ fixture_id: matchId, knights_goals: knightsGoals, opponent_goals: opponentGoals, player_of_match: potm, goalkeeper }])
     });
 
     // Insert goal scorers
@@ -931,7 +1112,7 @@ async function saveResult() {
     await loadResults();
     renderFixtures();
     renderResults();
-    renderScorers();
+    renderPlayerStats();
     document.getElementById('resultForm').style.display = 'none';
     document.getElementById('matchSelect').value = '';
     showToast('Result saved!');
