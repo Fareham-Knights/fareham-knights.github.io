@@ -248,6 +248,8 @@
   .fixture-status { font-size: 11px; color: var(--gold-dark); font-weight: 600; margin-top: 4px; }
   .table { width: 100%; border-collapse: collapse; }
   .table th { background: var(--crimson); color: white; padding: 12px; text-align: left; font-size: 12px; font-weight: 600; }
+  .table th.sortable { cursor: pointer; user-select: none; }
+  .table th.sortable .sort-arrow { font-size: 10px; margin-left: 3px; opacity: 0.7; }
   .table td { padding: 12px; border-bottom: 1px solid var(--grey-100); }
   .table tr:hover { background: var(--grey-50); }
   .table td:nth-child(n+3) { text-align: center; }
@@ -301,7 +303,7 @@
     <button class="tab active" onclick="switchTab('fixtures')">📅 Fixtures</button>
     <button class="tab" onclick="switchTab('results')">📊 Results</button>
     <button class="tab" onclick="switchTab('stats')">🏅 Player Stats</button>
-    <button class="tab" onclick="switchTab('squad')">🎽 Squad</button>
+    <button class="tab" onclick="switchTab('squad')">⚽ Squad</button>
   </div>
 
   <div id="tab-fixtures" class="tab-content active">
@@ -357,6 +359,11 @@ let goalScorers = {};
 let squad = [];
 let availability = {};
 
+// Player Stats column sort state. Defaults match the previous fixed sort
+// (highest goals first).
+let statsSortColumn = 'goals';
+let statsSortDir = 'desc';
+
 async function sbFetch(path, options = {}) {
   // Reads work for everyone; writes only succeed if the request carries a
   // signed-in user's token, which RLS checks against the "authenticated" role.
@@ -387,6 +394,7 @@ async function loadAndRender() {
   renderPlayerStats();
   renderSquad();
   populateMatchSelect();
+  populateEditFixtureSelect();
 }
 
 async function init() {
@@ -475,7 +483,11 @@ async function renderAdminContent(email) {
         <input type="date" id="fixtureDate">
       </div>
       <div class="form-group">
-        <label>Time</label>
+        <label>Meet Time (optional)</label>
+        <input type="time" id="fixtureMeetTime">
+      </div>
+      <div class="form-group">
+        <label>Kick-off Time</label>
         <input type="time" id="fixtureTime">
       </div>
       <div class="form-group">
@@ -494,6 +506,50 @@ async function renderAdminContent(email) {
         <textarea id="fixtureComments" rows="3" placeholder="e.g., Parking is £2 at the clubhouse, pitch is the astro behind the school" style="width:100%;padding:8px 12px;border:1.5px solid var(--grey-200);border-radius:6px;font-size:14px;font-family:'Inter',sans-serif;outline:none;resize:vertical;"></textarea>
       </div>
       <button class="btn" onclick="addFixture()">Add Fixture</button>
+    </div>
+
+    <div class="section">
+      <h3>Edit Fixture</h3>
+      <div class="form-group">
+        <label>Select Fixture</label>
+        <select id="editFixtureSelect" onchange="loadFixtureForEdit()">
+          <option value="">-- Select a fixture --</option>
+        </select>
+      </div>
+      <div id="editFixtureForm" style="display:none;">
+        <div class="form-group">
+          <label>Opponent</label>
+          <input type="text" id="editFixtureOpponent">
+        </div>
+        <div class="form-group">
+          <label>Date</label>
+          <input type="date" id="editFixtureDate">
+        </div>
+        <div class="form-group">
+          <label>Meet Time (optional)</label>
+          <input type="time" id="editFixtureMeetTime">
+        </div>
+        <div class="form-group">
+          <label>Kick-off Time</label>
+          <input type="time" id="editFixtureTime">
+        </div>
+        <div class="form-group">
+          <label>Home or Away?</label>
+          <select id="editFixtureHomeAway">
+            <option value="Home">Home</option>
+            <option value="Away">Away</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Location (optional)</label>
+          <input type="text" id="editFixtureLocation" placeholder="e.g., Cams Alders, Fareham">
+        </div>
+        <div class="form-group">
+          <label>Comments (optional)</label>
+          <textarea id="editFixtureComments" rows="3" placeholder="e.g., Parking is £2 at the clubhouse, pitch is the astro behind the school" style="width:100%;padding:8px 12px;border:1.5px solid var(--grey-200);border-radius:6px;font-size:14px;font-family:'Inter',sans-serif;outline:none;resize:vertical;"></textarea>
+        </div>
+        <button class="btn" onclick="saveFixtureEdit()">Save Changes</button>
+      </div>
     </div>
 
     <div class="section">
@@ -535,6 +591,7 @@ async function renderAdminContent(email) {
     </div>
   `;
   populateMatchSelect();
+  populateEditFixtureSelect();
   await loadSquadAdmin();
   renderSquadAdminList();
 }
@@ -593,6 +650,15 @@ function formatDate(dateStr) {
   const month = months[date.getMonth()];
   const year = date.getFullYear();
   return day + ' ' + month + ' ' + year;
+}
+
+// Converts a stored timestamp back into "HH:MM" for an <input type="time">.
+function timeInputValue(isoString) {
+  if (!isoString) return '';
+  const d = new Date(isoString);
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  return hh + ':' + mm;
 }
 
 function mapLink(location) {
@@ -853,6 +919,24 @@ function renderResults() {
   container.innerHTML = html;
 }
 
+// Toggles sort direction if the same column is clicked again, otherwise
+// switches to the new column with a sensible default direction (A-Z for
+// the name column, highest-first for the numeric stats).
+function setStatsSort(column) {
+  if (statsSortColumn === column) {
+    statsSortDir = statsSortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    statsSortColumn = column;
+    statsSortDir = column === 'name' ? 'asc' : 'desc';
+  }
+  renderPlayerStats();
+}
+
+function sortArrow(column) {
+  if (statsSortColumn !== column) return '';
+  return '<span class="sort-arrow">' + (statsSortDir === 'asc' ? '▲' : '▼') + '</span>';
+}
+
 // ── Player Stats tab ────────────────────────────────────────────────────
 function renderPlayerStats() {
   const container = document.getElementById('statsContent');
@@ -878,16 +962,27 @@ function renderPlayerStats() {
     return { name: p.name, played, goals, cleanSheets, potm };
   });
 
-  stats.sort((a, b) => b.goals - a.goals || b.potm - a.potm || b.played - a.played);
+  stats.sort((a, b) => {
+    let cmp;
+    if (statsSortColumn === 'name') cmp = a.name.localeCompare(b.name);
+    else cmp = a[statsSortColumn] - b[statsSortColumn];
+    return statsSortDir === 'asc' ? cmp : -cmp;
+  });
 
   let html = '<div class="section"><h3>Player Stats</h3>' +
     '<table class="table">' +
-    '<tr><th>Player</th><th>P</th><th>G</th><th>CS</th><th>POTM</th></tr>';
+    '<tr>' +
+    '<th class="sortable" onclick="setStatsSort(\'name\')">Player' + sortArrow('name') + '</th>' +
+    '<th class="sortable" onclick="setStatsSort(\'played\')">P' + sortArrow('played') + '</th>' +
+    '<th class="sortable" onclick="setStatsSort(\'goals\')">G' + sortArrow('goals') + '</th>' +
+    '<th class="sortable" onclick="setStatsSort(\'cleanSheets\')">CS' + sortArrow('cleanSheets') + '</th>' +
+    '<th class="sortable" onclick="setStatsSort(\'potm\')">POTM' + sortArrow('potm') + '</th>' +
+    '</tr>';
   stats.forEach(s => {
     html += '<tr><td>' + s.name + '</td><td>' + s.played + '</td><td>' + s.goals + '</td><td>' + s.cleanSheets + '</td><td>' + s.potm + '</td></tr>';
   });
   html += '</table>' +
-    '<div style="font-size:11px;color:var(--grey-400);margin-top:10px;">P = matches attended (based on "Who\'s coming?" yes votes) · G = goals · CS = clean sheets as goalkeeper · POTM = Player of the Match awards</div>' +
+    '<div style="font-size:11px;color:var(--grey-400);margin-top:10px;">P = matches attended (based on "Who\'s coming?" yes votes) · G = goals · CS = clean sheets as goalkeeper · POTM = Player of the Match awards · tap a column to sort</div>' +
     '</div>';
 
   container.innerHTML = html;
@@ -923,6 +1018,71 @@ function populateMatchSelect() {
     const label = f.opponent + ' (' + f.date + ')' + recorded;
     select.innerHTML += '<option value="' + f.id + '">' + label + '</option>';
   });
+}
+
+function populateEditFixtureSelect() {
+  const select = document.getElementById('editFixtureSelect');
+  if (!select) return; // Exit if element doesn't exist yet
+  const current = select.value;
+  select.innerHTML = '<option value="">-- Select a fixture --</option>';
+  fixtures.forEach(f => {
+    const label = f.opponent + ' (' + f.date + ')';
+    select.innerHTML += '<option value="' + f.id + '">' + label + '</option>';
+  });
+  select.value = current;
+}
+
+function loadFixtureForEdit() {
+  const fixtureId = parseInt(document.getElementById('editFixtureSelect').value);
+  const form = document.getElementById('editFixtureForm');
+
+  if (!fixtureId) { form.style.display = 'none'; return; }
+
+  const f = fixtures.find(fx => fx.id === fixtureId);
+  if (!f) { form.style.display = 'none'; return; }
+
+  form.style.display = 'block';
+  document.getElementById('editFixtureOpponent').value = f.opponent;
+  document.getElementById('editFixtureDate').value = f.date;
+  document.getElementById('editFixtureMeetTime').value = timeInputValue(f.meet_time);
+  document.getElementById('editFixtureTime').value = timeInputValue(f.kickoff_time);
+  document.getElementById('editFixtureHomeAway').value = f.home_away;
+  document.getElementById('editFixtureLocation').value = f.location || '';
+  document.getElementById('editFixtureComments').value = f.comments || '';
+}
+
+async function saveFixtureEdit() {
+  const fixtureId = parseInt(document.getElementById('editFixtureSelect').value);
+  const opponent = document.getElementById('editFixtureOpponent').value.trim();
+  const date = document.getElementById('editFixtureDate').value;
+  const meetTime = document.getElementById('editFixtureMeetTime').value;
+  const time = document.getElementById('editFixtureTime').value;
+  const homeAway = document.getElementById('editFixtureHomeAway').value;
+  const location = document.getElementById('editFixtureLocation').value.trim() || null;
+  const comments = document.getElementById('editFixtureComments').value.trim() || null;
+
+  if (!fixtureId || !opponent || !date || !time) { showToast('Fill in all fields', true); return; }
+
+  const kickoff = new Date(date + 'T' + time).toISOString();
+  const meet = meetTime ? new Date(date + 'T' + meetTime).toISOString() : null;
+
+  try {
+    await sbFetch('knights_fixtures?id=eq.' + fixtureId, {
+      method: 'PATCH',
+      body: JSON.stringify({ opponent, date, kickoff_time: kickoff, meet_time: meet, home_away: homeAway, location, comments })
+    });
+
+    await loadFixtures();
+    renderFixtures();
+    renderResults();
+    populateMatchSelect();
+    populateEditFixtureSelect();
+    document.getElementById('editFixtureForm').style.display = 'none';
+    document.getElementById('editFixtureSelect').value = '';
+    showToast('Fixture updated!');
+  } catch(e) {
+    showToast('Error: ' + e.message, true);
+  }
 }
 
 // ── Admin: squad ────────────────────────────────────────────────────────
@@ -1044,6 +1204,7 @@ function addGoalScorerInput() {
 async function addFixture() {
   const opponent = document.getElementById('fixtureOpponent').value.trim();
   const date = document.getElementById('fixtureDate').value;
+  const meetTime = document.getElementById('fixtureMeetTime').value;
   const time = document.getElementById('fixtureTime').value;
   const homeAway = document.getElementById('fixtureHomeAway').value;
   const location = document.getElementById('fixtureLocation').value.trim() || null;
@@ -1052,15 +1213,17 @@ async function addFixture() {
   if (!opponent || !date || !time) { showToast('Fill in all fields', true); return; }
 
   const kickoff = new Date(date + 'T' + time).toISOString();
+  const meet = meetTime ? new Date(date + 'T' + meetTime).toISOString() : null;
 
   try {
     await sbFetch('knights_fixtures', {
       method: 'POST',
-      body: JSON.stringify([{ opponent, date, kickoff_time: kickoff, home_away: homeAway, location, comments }])
+      body: JSON.stringify([{ opponent, date, kickoff_time: kickoff, meet_time: meet, home_away: homeAway, location, comments }])
     });
 
     document.getElementById('fixtureOpponent').value = '';
     document.getElementById('fixtureDate').value = '';
+    document.getElementById('fixtureMeetTime').value = '';
     document.getElementById('fixtureTime').value = '';
     document.getElementById('fixtureLocation').value = '';
     document.getElementById('fixtureComments').value = '';
@@ -1068,6 +1231,7 @@ async function addFixture() {
     await loadFixtures();
     renderFixtures();
     populateMatchSelect();
+    populateEditFixtureSelect();
     showToast('Fixture added!');
   } catch(e) {
     showToast('Error: ' + e.message, true);
