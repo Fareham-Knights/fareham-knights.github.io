@@ -286,15 +286,15 @@
 <body>
 <header>
   <div class="header-titles">
-    <img class="header-crest" src="knights_crest.png" alt="Fareham Knights crest">
+    <img class="header-crest" src="knights_crest.png" alt="team crest">
     <div>
-      <h1>Fareham Knights U10</h1>
-      <div class="header-meta">Coaches: Sam Lloyd &amp; Louis Hider</div>
-      <div class="header-meta">Sponsor: <a href="https://ksjlettings.co.uk/" target="_blank" rel="noopener" style="color:var(--gold);">KSJ Lettings</a></div>
+      <h1 id="teamName">Fareham Knights U10</h1>
+      <div class="header-meta" id="coachesLine">Coaches: Sam Lloyd &amp; Louis Hider</div>
+      <div class="header-meta" id="sponsorLine">Sponsor: <a id="sponsorLink" href="https://ksjlettings.co.uk/" target="_blank" rel="noopener" style="color:var(--gold);">KSJ Lettings</a></div>
     </div>
   </div>
   <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
-    <a href="https://www.farehamtown.co.uk/" target="_blank" rel="noopener" title="Contact Fareham Town FC" aria-label="Contact Fareham Town FC" style="position:relative;z-index:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.6);width:38px;height:38px;border-radius:8px;font-size:16px;display:flex;align-items:center;justify-content:center;text-decoration:none;flex-shrink:0;">✉️</a>
+    <a id="clubLink" href="https://www.farehamtown.co.uk/" target="_blank" rel="noopener" title="Contact club" aria-label="Contact club" style="position:relative;z-index:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.6);width:38px;height:38px;border-radius:8px;font-size:16px;display:flex;align-items:center;justify-content:center;text-decoration:none;flex-shrink:0;">✉️</a>
     <button onclick="switchTab('admin')" title="Manage" aria-label="Admin" style="position:relative;z-index:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.6);width:38px;height:38px;border-radius:8px;font-size:16px;cursor:pointer;flex-shrink:0;">⚙</button>
   </div>
 </header>
@@ -358,6 +358,7 @@ let results = {};
 let goalScorers = {};
 let squad = [];
 let availability = {};
+let teamConfig = {};
 
 // Player Stats column sort state. Defaults match the previous fixed sort
 // (highest goals first).
@@ -385,6 +386,7 @@ async function sbFetch(path, options = {}) {
 }
 
 async function loadAndRender() {
+  await loadConfig();
   await loadFixtures();
   await loadResults();
   await loadSquad();
@@ -455,21 +457,26 @@ async function renderAdminContent(email) {
     </div>
 
     <div class="section">
-      <h3>Squad</h3>
-      <div id="squadAdminList"><div class="loading-overlay">Loading squad…</div></div>
-      <div class="form-group" style="margin-top:16px;">
-        <label>Name</label>
-        <input type="text" id="squadName" placeholder="e.g., Alfie">
+      <button onclick="toggleSquadAdmin()" style="background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:8px;padding:0;width:100%;text-align:left;">
+        <h3 style="margin:0;font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px;color:var(--crimson);">Squad</h3>
+        <span id="squadAdminArrow" style="font-size:11px;color:var(--grey-400);margin-left:auto;">▼ expand</span>
+      </button>
+      <div id="squadAdminBody" style="display:none; margin-top:16px;">
+        <div id="squadAdminList"><div class="loading-overlay">Loading squad…</div></div>
+        <div class="form-group" style="margin-top:16px;">
+          <label>Name</label>
+          <input type="text" id="squadName" placeholder="e.g., Alfie">
+        </div>
+        <div class="form-group">
+          <label>Shirt Number</label>
+          <input type="number" id="squadNumber" min="1" placeholder="e.g., 7">
+        </div>
+        <div class="form-group">
+          <label>Date of Birth</label>
+          <input type="date" id="squadDob">
+        </div>
+        <button class="btn" onclick="addSquadPlayer()">Add Player</button>
       </div>
-      <div class="form-group">
-        <label>Shirt Number</label>
-        <input type="number" id="squadNumber" min="1" placeholder="e.g., 7">
-      </div>
-      <div class="form-group">
-        <label>Date of Birth</label>
-        <input type="date" id="squadDob">
-      </div>
-      <button class="btn" onclick="addSquadPlayer()">Add Player</button>
     </div>
 
     <div class="section">
@@ -589,11 +596,49 @@ async function renderAdminContent(email) {
         <button class="btn btn-gold" style="margin-top:12px;margin-left:8px;" onclick="saveResult()">Save Result</button>
       </div>
     </div>
+
+    <div class="section" style="border-top: 1px solid var(--grey-200); padding-top: 16px; margin-top: 8px;">
+      <button onclick="toggleTeamSettings()" style="background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:8px;padding:0;width:100%;text-align:left;">
+        <h3 style="margin:0;color:var(--grey-400);font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:1px;">⚙ Team Settings</h3>
+        <span id="teamSettingsArrow" style="font-size:11px;color:var(--grey-400);margin-left:auto;">▼ expand</span>
+      </button>
+      <div id="teamSettingsBody" style="display:none; margin-top:16px;">
+        <div class="form-group">
+          <label>Team Name</label>
+          <input type="text" id="cfgTeamName" placeholder="e.g., Fareham Knights U10">
+        </div>
+        <div class="form-group">
+          <label>Coaches</label>
+          <input type="text" id="cfgCoaches" placeholder="e.g., Sam Lloyd & Louis Hider">
+        </div>
+        <div class="form-group">
+          <label>Sponsor Name (optional)</label>
+          <input type="text" id="cfgSponsorName" placeholder="e.g., KSJ Lettings">
+        </div>
+        <div class="form-group">
+          <label>Sponsor URL (optional)</label>
+          <input type="url" id="cfgSponsorUrl" placeholder="https://...">
+        </div>
+        <div class="form-group">
+          <label>Club Contact URL</label>
+          <input type="url" id="cfgClubUrl" placeholder="https://...">
+        </div>
+        <div class="form-group" style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;">
+          <div>
+            <label style="display:block;margin-bottom:4px;">Primary Colour</label>
+            <input type="color" id="cfgPrimary" value="#a01f2d" style="width:48px;height:36px;border:none;cursor:pointer;background:none;">
+          </div>
+          <div>
+            <label style="display:block;margin-bottom:4px;">Accent Colour</label>
+            <input type="color" id="cfgAccent" value="#e8c468" style="width:48px;height:36px;border:none;cursor:pointer;background:none;">
+          </div>
+        </div>
+        <button class="btn" onclick="saveConfig()">Save Settings</button>
+      </div>
+    </div>
   `;
   populateMatchSelect();
   populateEditFixtureSelect();
-  await loadSquadAdmin();
-  renderSquadAdminList();
 }
 
 // ── Data loading ────────────────────────────────────────────────────────
@@ -622,6 +667,66 @@ async function loadSquad() {
   if (squad.length > 0) {
     PLAYERS = squad.map(p => p.name);
   }
+}
+
+async function loadConfig() {
+  try {
+    const data = await sbFetch('knights_config?select=*');
+    teamConfig = {};
+    data.forEach(r => { teamConfig[r.key] = r.value; });
+    applyConfig();
+  } catch(e) {
+    // Config table may not exist yet (before migration 8 is run) — fail
+    // silently and keep the hardcoded defaults in the HTML.
+  }
+}
+
+// Darkens a hex colour by subtracting a fixed amount from each channel.
+function darkenHex(hex, amount) {
+  const h = hex.replace('#','');
+  const r = Math.max(0, parseInt(h.slice(0,2),16) - amount);
+  const g = Math.max(0, parseInt(h.slice(2,4),16) - amount);
+  const b = Math.max(0, parseInt(h.slice(4,6),16) - amount);
+  return '#' + [r,g,b].map(v => v.toString(16).padStart(2,'0')).join('');
+}
+
+function applyConfig() {
+  const name        = teamConfig.team_name     || 'Fareham Knights U10';
+  const coaches     = teamConfig.coaches       || '';
+  const sponsorName = teamConfig.sponsor_name  || '';
+  const sponsorUrl  = teamConfig.sponsor_url   || '#';
+  const clubUrl     = teamConfig.club_url      || '#';
+  const primary     = teamConfig.primary_colour || '#a01f2d';
+  const accent      = teamConfig.accent_colour  || '#e8c468';
+
+  document.title = name + ' - Match Tracker';
+  const metaTitle = document.querySelector('meta[name="apple-mobile-web-app-title"]');
+  if (metaTitle) metaTitle.setAttribute('content', name);
+
+  const teamNameEl = document.getElementById('teamName');
+  if (teamNameEl) teamNameEl.textContent = name;
+
+  const coachesEl = document.getElementById('coachesLine');
+  if (coachesEl) coachesEl.textContent = coaches ? 'Coaches: ' + coaches : '';
+
+  const sponsorLine = document.getElementById('sponsorLine');
+  const sponsorLink = document.getElementById('sponsorLink');
+  if (sponsorLine && sponsorLink) {
+    if (sponsorName) {
+      sponsorLine.style.display = '';
+      sponsorLink.textContent = sponsorName;
+      sponsorLink.href = sponsorUrl;
+    } else {
+      sponsorLine.style.display = 'none';
+    }
+  }
+
+  const clubLink = document.getElementById('clubLink');
+  if (clubLink) clubLink.href = clubUrl;
+
+  document.documentElement.style.setProperty('--crimson', primary);
+  document.documentElement.style.setProperty('--gold', accent);
+  document.documentElement.style.setProperty('--gold-dark', darkenHex(accent, 20));
 }
 
 async function loadAvailability() {
@@ -779,6 +884,18 @@ function buildMatchCard(f) {
     potmLine = '<div class="match-potm" style="grid-column: 1 / -1;">🌟 Player of the Match: ' + res.potm + '</div>';
   }
 
+  // Times line for unplayed fixtures
+  let timesLine = '';
+  if (!isPlayed) {
+    const koStr = kickoff.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    if (f.meet_time) {
+      const meetStr = new Date(f.meet_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+      timesLine = '<div class="match-scorers" style="grid-column: 1 / -1; font-size:12px; color:var(--grey-600);">🕐 Meet ' + meetStr + ' · KO ' + koStr + '</div>';
+    } else {
+      timesLine = '<div class="match-scorers" style="grid-column: 1 / -1; font-size:12px; color:var(--grey-600);">⚽ KO ' + koStr + '</div>';
+    }
+  }
+
   // Location line, with a Google Maps link, when set
   let locationLine = '';
   if (f.location) {
@@ -792,8 +909,9 @@ function buildMatchCard(f) {
     '<div class="match-team home">Knights<div class="match-meta">' + formatDate(f.date) + '</div></div>' +
     scoreHtml +
     '<div class="match-team away">' + f.opponent + '<div class="match-meta">' + (result ? result : f.home_away) + '</div></div>' +
+    timesLine +
     locationLine +
-    buildNotesLine(f.comments, true) +
+    (!isPlayed ? buildNotesLine(f.comments, true) : '') +
     scorersLine +
     potmLine +
     availabilitySection +
@@ -837,7 +955,14 @@ function renderFixtures() {
     if (days === 0) parts.push(mins + (mins === 1 ? ' minute' : ' minutes'));
     let countdownText = parts.join(' ');
 
-    const timeStr = kickoff.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    const koTimeStr = kickoff.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    let timesDisplay = '';
+    if (nextMatch.meet_time) {
+      const meetDisplay = new Date(nextMatch.meet_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+      timesDisplay = 'Meet ' + meetDisplay + ' · KO ' + koTimeStr;
+    } else {
+      timesDisplay = 'KO ' + koTimeStr;
+    }
 
     const locationLine = nextMatch.location
       ? '<div class="next-match-detail"><a href="' + mapLink(nextMatch.location) + '" target="_blank" rel="noopener" style="color:var(--gold);">📍 ' + nextMatch.location + '</a></div>'
@@ -846,10 +971,11 @@ function renderFixtures() {
     html += '<div class="next-match-card">' +
       '<div class="next-match-label">NEXT MATCH</div>' +
       '<div class="next-match-teams">Knights vs ' + nextMatch.opponent + '</div>' +
-      '<div class="next-match-detail">' + formatDate(nextMatch.date) + ' · ' + timeStr + ' · ' + nextMatch.home_away + '</div>' +
+      '<div class="next-match-detail">' + formatDate(nextMatch.date) + ' · ' + nextMatch.home_away + '</div>' +
       locationLine +
       buildNotesLine(nextMatch.comments) +
-      '<div class="next-match-countdown">' + countdownText + '</div>' +
+      '<div class="next-match-countdown">' + timesDisplay + '</div>' +
+      '<div class="next-match-detail" style="margin-top:8px;margin-bottom:0;">' + countdownText + '</div>' +
       buildAvailabilitySection(nextMatch.id) +
       '</div>';
   } else if (upcoming.length === 0) {
@@ -948,24 +1074,39 @@ function renderPlayerStats() {
 
   const playedFixtures = fixtures.filter(f => results[f.id] !== undefined);
 
+  // Only players who've been recorded as goalkeeper ever show a CS count.
+  // Everyone else gets a dash so outfield players aren't misleadingly shown as 0.
+  const gkNames = new Set(playedFixtures.map(f => results[f.id].goalkeeper).filter(Boolean));
+
   const stats = squad.map(p => {
     let played = 0, goals = 0, cleanSheets = 0, potm = 0;
+    const hasBeenGK = gkNames.has(p.name);
     playedFixtures.forEach(f => {
       const res = results[f.id];
       if ((availability[f.id] || {})[p.id] === 'yes') played++;
       if (res.potm === p.name) potm++;
-      if (res.goalkeeper === p.name && res.opponent === 0) cleanSheets++;
+      if (hasBeenGK && res.goalkeeper === p.name && res.opponent === 0) cleanSheets++;
       (goalScorers[f.id] || []).forEach(s => {
         if (s.player === p.name) goals += s.goals;
       });
     });
-    return { name: p.name, played, goals, cleanSheets, potm };
+    return { name: p.name, played, goals, cleanSheets, potm, hasBeenGK };
   });
 
   stats.sort((a, b) => {
     let cmp;
-    if (statsSortColumn === 'name') cmp = a.name.localeCompare(b.name);
-    else cmp = a[statsSortColumn] - b[statsSortColumn];
+    if (statsSortColumn === 'name') {
+      cmp = a.name.localeCompare(b.name);
+    } else if (statsSortColumn === 'cleanSheets') {
+      // Non-GKs always sit below GKs regardless of sort direction
+      if (!a.hasBeenGK && !b.hasBeenGK) cmp = 0;
+      else if (!a.hasBeenGK) return 1;
+      else if (!b.hasBeenGK) return -1;
+      else cmp = a.cleanSheets - b.cleanSheets;
+      return statsSortDir === 'asc' ? cmp : -cmp;
+    } else {
+      cmp = a[statsSortColumn] - b[statsSortColumn];
+    }
     return statsSortDir === 'asc' ? cmp : -cmp;
   });
 
@@ -979,7 +1120,8 @@ function renderPlayerStats() {
     '<th class="sortable" onclick="setStatsSort(\'potm\')">POTM' + sortArrow('potm') + '</th>' +
     '</tr>';
   stats.forEach(s => {
-    html += '<tr><td>' + s.name + '</td><td>' + s.played + '</td><td>' + s.goals + '</td><td>' + s.cleanSheets + '</td><td>' + s.potm + '</td></tr>';
+    const csDisplay = s.hasBeenGK ? s.cleanSheets : '<span style="color:var(--grey-400);">—</span>';
+    html += '<tr><td>' + s.name + '</td><td>' + s.played + '</td><td>' + s.goals + '</td><td>' + csDisplay + '</td><td>' + s.potm + '</td></tr>';
   });
   html += '</table>' +
     '<div style="font-size:11px;color:var(--grey-400);margin-top:10px;">P = matches attended (based on "Who\'s coming?" yes votes) · G = goals · CS = clean sheets as goalkeeper · POTM = Player of the Match awards · tap a column to sort</div>' +
@@ -1006,6 +1148,61 @@ function renderSquad() {
   });
 
   container.innerHTML = html;
+}
+
+// ── Admin: team settings ────────────────────────────────────────────────
+function toggleSquadAdmin() {
+  const body = document.getElementById('squadAdminBody');
+  const arrow = document.getElementById('squadAdminArrow');
+  if (!body) return;
+  const open = body.style.display === 'none';
+  body.style.display = open ? 'block' : 'none';
+  if (arrow) arrow.textContent = open ? '▲ collapse' : '▼ expand';
+  if (open) { loadSquadAdmin().then(renderSquadAdminList); }
+}
+
+function toggleTeamSettings() {
+  const body = document.getElementById('teamSettingsBody');
+  const arrow = document.getElementById('teamSettingsArrow');
+  if (!body) return;
+  const open = body.style.display === 'none';
+  body.style.display = open ? 'block' : 'none';
+  if (arrow) arrow.textContent = open ? '▲ collapse' : '▼ expand';
+  if (open) prefillConfigForm();
+}
+
+function prefillConfigForm() {
+  const set = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
+  set('cfgTeamName',   teamConfig.team_name);
+  set('cfgCoaches',    teamConfig.coaches);
+  set('cfgSponsorName',teamConfig.sponsor_name);
+  set('cfgSponsorUrl', teamConfig.sponsor_url);
+  set('cfgClubUrl',    teamConfig.club_url);
+  set('cfgPrimary',    teamConfig.primary_colour);
+  set('cfgAccent',     teamConfig.accent_colour);
+}
+
+async function saveConfig() {
+  const entries = [
+    { key: 'team_name',      value: document.getElementById('cfgTeamName').value.trim() },
+    { key: 'coaches',        value: document.getElementById('cfgCoaches').value.trim() },
+    { key: 'sponsor_name',   value: document.getElementById('cfgSponsorName').value.trim() },
+    { key: 'sponsor_url',    value: document.getElementById('cfgSponsorUrl').value.trim() },
+    { key: 'club_url',       value: document.getElementById('cfgClubUrl').value.trim() },
+    { key: 'primary_colour', value: document.getElementById('cfgPrimary').value },
+    { key: 'accent_colour',  value: document.getElementById('cfgAccent').value },
+  ];
+  try {
+    await sbFetch('knights_config?on_conflict=key', {
+      method: 'POST',
+      headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
+      body: JSON.stringify(entries)
+    });
+    await loadConfig();
+    showToast('Settings saved!');
+  } catch(e) {
+    showToast('Error: ' + e.message, true);
+  }
 }
 
 // ── Admin: fixtures and results ────────────────────────────────────────
