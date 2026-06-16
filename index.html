@@ -635,6 +635,12 @@ async function renderAdminContent(email) {
     </div>
 
     <div class="section" style="border-top: 1px solid var(--grey-200); padding-top: 16px; margin-top: 8px;">
+      <h3 style="margin:0 0 8px;font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px;color:var(--crimson);">Export Season Data</h3>
+      <p style="font-size:13px;color:var(--grey-600);margin-bottom:14px;">Downloads a complete snapshot of all fixtures, results, goals, squad, and player stats as a JSON file. Keep a copy at the end of each month and at the end of the season.</p>
+      <button class="btn" onclick="exportSeasonData()">⬇ Download Season Backup</button>
+    </div>
+
+    <div class="section" style="border-top: 1px solid var(--grey-200); padding-top: 16px; margin-top: 8px;">
       <button onclick="toggleTeamSettings()" style="background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:8px;padding:0;width:100%;text-align:left;">
         <h3 style="margin:0;color:var(--grey-400);font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:1px;">⚙ Team Settings</h3>
         <span id="teamSettingsArrow" style="font-size:11px;color:var(--grey-400);margin-left:auto;">▼ expand</span>
@@ -1181,6 +1187,122 @@ function renderSquad() {
   });
 
   container.innerHTML = html;
+}
+
+// ── Admin: season data export ────────────────────────────────────────────
+async function exportSeasonData() {
+  showToast('Preparing export…');
+  try {
+    // Fetch all raw tables in parallel
+    const [rawFixtures, rawResults, rawGoalScorers, rawSquad, rawAvailability] =
+      await Promise.all([
+        sbFetch('knights_fixtures?select=*&order=kickoff_time'),
+        sbFetch('knights_match_results?select=*'),
+        sbFetch('knights_goal_scorers?select=*'),
+        sbFetch('knights_squad?select=*&order=shirt_number'),
+        sbFetch('knights_availability?select=*'),
+      ]);
+
+    // Build a results lookup for quick access
+    const resultsById = {};
+    rawResults.forEach(r => { resultsById[r.fixture_id] = r; });
+
+    // Build a goal scorers lookup
+    const goalsById = {};
+    rawGoalScorers.forEach(g => {
+      if (!goalsById[g.fixture_id]) goalsById[g.fixture_id] = [];
+      goalsById[g.fixture_id].push({ player: g.player, goals: g.goals });
+    });
+
+    // Build an availability lookup
+    const availById = {};
+    rawAvailability.forEach(a => {
+      if (!availById[a.fixture_id]) availById[a.fixture_id] = {};
+      availById[a.fixture_id][a.player_id] = a.status;
+    });
+
+    // Compute player stats summary (mirrors the Player Stats tab)
+    const playedFixtures = rawFixtures.filter(f => resultsById[f.id]);
+    const gkNames = new Set(playedFixtures.map(f => resultsById[f.id].goalkeeper).filter(Boolean));
+
+    const playerStats = rawSquad.map(p => {
+      let played = 0, goals = 0, cleanSheets = 0, potm = 0;
+      const hasBeenGK = gkNames.has(p.name);
+      playedFixtures.forEach(f => {
+        const res = resultsById[f.id];
+        if ((availById[f.id] || {})[p.id] === 'yes') played++;
+        if (res.player_of_match === p.name) potm++;
+        if (hasBeenGK && res.goalkeeper === p.name && res.opponent_goals === 0) cleanSheets++;
+        (goalsById[f.id] || []).forEach(s => {
+          if (s.player === p.name) goals += s.goals;
+        });
+      });
+      return {
+        name: p.name,
+        shirt_number: p.shirt_number,
+        matches_attended: played,
+        goals,
+        clean_sheets: hasBeenGK ? cleanSheets : null,
+        player_of_match_awards: potm,
+      };
+    });
+
+    // Build the full export object
+    const teamName = (teamConfig.team_name || 'Fareham Knights').replace(/\s+/g, '_');
+    const exportDate = new Date().toISOString().slice(0, 10);
+    const won   = playedFixtures.filter(f => resultsById[f.id].knights_goals > resultsById[f.id].opponent_goals).length;
+    const drawn = playedFixtures.filter(f => resultsById[f.id].knights_goals === resultsById[f.id].opponent_goals).length;
+    const lost  = playedFixtures.filter(f => resultsById[f.id].knights_goals < resultsById[f.id].opponent_goals).length;
+    const gf    = rawResults.reduce((n, r) => n + r.knights_goals, 0);
+    const ga    = rawResults.reduce((n, r) => n + r.opponent_goals, 0);
+
+    const payload = {
+      exported_at: new Date().toISOString(),
+      team: teamConfig.team_name || 'Fareham Knights',
+      season_summary: {
+        played: playedFixtures.length,
+        won, drawn, lost,
+        goals_for: gf,
+        goals_against: ga,
+        goal_difference: gf - ga,
+      },
+      player_stats: playerStats,
+      fixtures: rawFixtures.map(f => ({
+        id: f.id,
+        date: f.date,
+        opponent: f.opponent,
+        home_away: f.home_away,
+        location: f.location || null,
+        meet_time: f.meet_time || null,
+        kickoff_time: f.kickoff_time,
+        comments: f.comments || null,
+        result: resultsById[f.id] ? {
+          knights_goals: resultsById[f.id].knights_goals,
+          opponent_goals: resultsById[f.id].opponent_goals,
+          player_of_match: resultsById[f.id].player_of_match || null,
+          goalkeeper: resultsById[f.id].goalkeeper || null,
+          goal_scorers: goalsById[f.id] || [],
+        } : null,
+        availability: Object.entries(availById[f.id] || {}).map(([pid, status]) => {
+          const p = rawSquad.find(s => s.id === parseInt(pid));
+          return { player: p ? p.name : pid, status };
+        }),
+      })),
+      squad: rawSquad,
+    };
+
+    // Trigger download
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = teamName + '_' + exportDate + '.json';
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('Download started!');
+  } catch(e) {
+    showToast('Export failed: ' + e.message, true);
+  }
 }
 
 // ── Admin: team settings ────────────────────────────────────────────────
