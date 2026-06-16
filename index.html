@@ -157,7 +157,7 @@
     color: rgba(255,255,255,0.7);
     margin-bottom: 14px;
   }
-  .next-match-countdown {
+  .next-match-times {
     font-family: 'Bebas Neue', sans-serif;
     font-size: 34px;
     color: var(--gold);
@@ -182,6 +182,7 @@
     color: rgba(255,255,255,0.65);
     text-align: center;
     margin-top: 4px;
+    margin-bottom: 10px;
     font-style: italic;
   }
   .match-notes.light { color: var(--grey-500); font-style: italic; }
@@ -987,15 +988,6 @@ function renderFixtures() {
   // Next match hero card
   if (nextMatch) {
     const kickoff = new Date(nextMatch.kickoff_time);
-    const diff = kickoff - now;
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    const parts = [];
-    if (days > 0) parts.push(days + (days === 1 ? ' day' : ' days'));
-    if (hours > 0) parts.push(hours + (hours === 1 ? ' hour' : ' hours'));
-    if (days === 0) parts.push(mins + (mins === 1 ? ' minute' : ' minutes'));
-    let countdownText = parts.join(' ');
 
     const koTimeStr = kickoff.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
     let timesDisplay = '';
@@ -1016,8 +1008,7 @@ function renderFixtures() {
       '<div class="next-match-detail">' + formatDate(nextMatch.date) + ' · ' + nextMatch.home_away + '</div>' +
       locationLine +
       buildNotesLine(nextMatch.comments) +
-      '<div class="next-match-countdown">' + timesDisplay + '</div>' +
-      '<div class="next-match-detail" style="margin-top:8px;margin-bottom:0;">' + countdownText + '</div>' +
+      '<div class="next-match-times">' + timesDisplay + '</div>' +
       buildAvailabilitySection(nextMatch.id) +
       '</div>';
   } else if (upcoming.length === 0) {
