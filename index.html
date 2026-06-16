@@ -44,7 +44,9 @@
     align-items: center;
     justify-content: space-between;
     gap: 16px;
-    position: relative;
+    position: sticky;
+    top: 0;
+    z-index: 90;
     overflow: hidden;
     border-bottom: 3px solid var(--gold);
   }
@@ -488,9 +490,10 @@ supabaseClient.auth.onAuthStateChange(() => {
 async function renderAdminContent(email) {
   const container = document.getElementById('adminContent');
   container.innerHTML = `
-    <div class="section" style="text-align:center;">
-      <p style="color:var(--grey-600);margin-bottom:12px;">Signed in as ${email}</p>
-      <button class="btn" onclick="signOutAdmin()">Sign Out</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0 4px;">
+      <button onclick="switchTab('fixtures')" style="background:none;border:none;cursor:pointer;font-size:13px;font-weight:600;color:var(--crimson);font-family:'Inter',sans-serif;padding:0;display:flex;align-items:center;gap:4px;">← Back to app</button>
+      <div style="font-size:12px;color:var(--grey-400);">${email}</div>
+      <button onclick="signOutAdmin()" style="background:none;border:none;cursor:pointer;font-size:13px;font-weight:600;color:var(--grey-400);font-family:'Inter',sans-serif;padding:0;">Sign out</button>
     </div>
 
     <div class="section">
@@ -783,14 +786,11 @@ async function loadAvailability() {
 
 // ── Tabs ────────────────────────────────────────────────────────────────
 function switchTab(name) {
-  // Update bottom nav active state (admin has no nav item)
+  // Update bottom nav active state (admin has no nav item so all go grey)
   ['fixtures','results','stats','squad'].forEach(id => {
     const el = document.getElementById('nav-' + id);
     if (el) el.classList.toggle('active', id === name);
   });
-  // Hide the bottom nav entirely on the admin tab so it doesn't float over admin forms
-  const nav = document.querySelector('.bottom-nav');
-  if (nav) nav.style.display = name === 'admin' ? 'none' : 'flex';
 
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
