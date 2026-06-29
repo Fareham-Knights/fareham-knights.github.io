@@ -343,16 +343,30 @@
   </div>
 
   <div id="tab-admin" class="tab-content">
-    <div id="adminLock" class="section" style="text-align:center;">
-      <h3>Admin Login</h3>
-      <p style="margin-bottom:16px;color:var(--grey-600);">Sign in to manage fixtures and results</p>
-      <div class="form-group" style="max-width:300px;margin:0 auto;">
-        <input type="email" id="adminEmail" placeholder="Email" autocomplete="username">
+    <div id="adminLock" class="section" style="text-align:center;max-width:280px;margin:0 auto;">
+      <h3 style="margin-bottom:6px;">Admin</h3>
+      <p style="margin-bottom:20px;color:var(--grey-500);font-size:13px;">Enter your 4-digit PIN</p>
+      <div id="pinDots" style="display:flex;justify-content:center;gap:14px;margin-bottom:28px;">
+        <div id="pin-dot-0" style="width:14px;height:14px;border-radius:50%;background:rgba(0,0,0,0.15);transition:background 0.15s;"></div>
+        <div id="pin-dot-1" style="width:14px;height:14px;border-radius:50%;background:rgba(0,0,0,0.15);transition:background 0.15s;"></div>
+        <div id="pin-dot-2" style="width:14px;height:14px;border-radius:50%;background:rgba(0,0,0,0.15);transition:background 0.15s;"></div>
+        <div id="pin-dot-3" style="width:14px;height:14px;border-radius:50%;background:rgba(0,0,0,0.15);transition:background 0.15s;"></div>
       </div>
-      <div class="form-group" style="max-width:300px;margin:0 auto;">
-        <input type="password" id="adminPassword" placeholder="Password" autocomplete="current-password" onkeypress="if(event.key==='Enter') signInAdmin()">
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:240px;margin:0 auto;">
+        <button onclick="pinDigit('1')" style="height:60px;font-size:22px;font-weight:700;font-family:'Inter',sans-serif;border:1.5px solid var(--grey-200);border-radius:12px;background:var(--white);color:var(--ink);cursor:pointer;">1</button>
+        <button onclick="pinDigit('2')" style="height:60px;font-size:22px;font-weight:700;font-family:'Inter',sans-serif;border:1.5px solid var(--grey-200);border-radius:12px;background:var(--white);color:var(--ink);cursor:pointer;">2</button>
+        <button onclick="pinDigit('3')" style="height:60px;font-size:22px;font-weight:700;font-family:'Inter',sans-serif;border:1.5px solid var(--grey-200);border-radius:12px;background:var(--white);color:var(--ink);cursor:pointer;">3</button>
+        <button onclick="pinDigit('4')" style="height:60px;font-size:22px;font-weight:700;font-family:'Inter',sans-serif;border:1.5px solid var(--grey-200);border-radius:12px;background:var(--white);color:var(--ink);cursor:pointer;">4</button>
+        <button onclick="pinDigit('5')" style="height:60px;font-size:22px;font-weight:700;font-family:'Inter',sans-serif;border:1.5px solid var(--grey-200);border-radius:12px;background:var(--white);color:var(--ink);cursor:pointer;">5</button>
+        <button onclick="pinDigit('6')" style="height:60px;font-size:22px;font-weight:700;font-family:'Inter',sans-serif;border:1.5px solid var(--grey-200);border-radius:12px;background:var(--white);color:var(--ink);cursor:pointer;">6</button>
+        <button onclick="pinDigit('7')" style="height:60px;font-size:22px;font-weight:700;font-family:'Inter',sans-serif;border:1.5px solid var(--grey-200);border-radius:12px;background:var(--white);color:var(--ink);cursor:pointer;">7</button>
+        <button onclick="pinDigit('8')" style="height:60px;font-size:22px;font-weight:700;font-family:'Inter',sans-serif;border:1.5px solid var(--grey-200);border-radius:12px;background:var(--white);color:var(--ink);cursor:pointer;">8</button>
+        <button onclick="pinDigit('9')" style="height:60px;font-size:22px;font-weight:700;font-family:'Inter',sans-serif;border:1.5px solid var(--grey-200);border-radius:12px;background:var(--white);color:var(--ink);cursor:pointer;">9</button>
+        <button onclick="pinDelete()" style="height:60px;font-size:18px;border:1.5px solid var(--grey-200);border-radius:12px;background:var(--white);color:var(--grey-600);cursor:pointer;">⌫</button>
+        <button onclick="pinDigit('0')" style="height:60px;font-size:22px;font-weight:700;font-family:'Inter',sans-serif;border:1.5px solid var(--grey-200);border-radius:12px;background:var(--white);color:var(--ink);cursor:pointer;">0</button>
+        <div></div>
       </div>
-      <button class="btn" onclick="signInAdmin()">Sign In</button>
+      <p id="pinError" style="color:var(--red);font-size:13px;margin-top:16px;min-height:20px;"></p>
     </div>
     <div id="adminContent" style="display:none;"></div>
   </div>
@@ -386,6 +400,11 @@
 // ── 2 projects, so this one is shared — Knights data lives in knights_* tables) ──
 const SUPABASE_URL = 'https://xlmlgjxztegstzsdgklo.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhsbWxnanh6dGVnc3R6c2Rna2xvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyNjAyMzQsImV4cCI6MjA5NjgzNjIzNH0.b-lyHkzYEKMdmxZZPg36PnHPNWT9Tc1H4wxL43JBsY8';
+
+// The admin email is stored here so the PIN pad can sign in without a
+// visible email field. The PIN is the Supabase password for this account.
+// Change ADMIN_EMAIL to match your Supabase auth account.
+const ADMIN_EMAIL = 'knights@gmail.com';
 
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -463,15 +482,40 @@ async function checkAdminSession() {
   }
 }
 
-async function signInAdmin() {
-  const email = document.getElementById('adminEmail').value.trim();
-  const password = document.getElementById('adminPassword').value;
-  if (!email || !password) { showToast('Enter email and password', true); return; }
+let pinEntry = '';
 
-  const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-  if (error) { showToast('Sign in failed: ' + error.message, true); return; }
+function pinDigit(digit) {
+  if (pinEntry.length >= 4) return;
+  pinEntry += digit;
+  updatePinDots();
+  if (pinEntry.length === 4) submitPin();
+}
 
-  document.getElementById('adminPassword').value = '';
+function pinDelete() {
+  pinEntry = pinEntry.slice(0, -1);
+  updatePinDots();
+  document.getElementById('pinError').textContent = '';
+}
+
+function updatePinDots() {
+  for (let i = 0; i < 4; i++) {
+    const dot = document.getElementById('pin-dot-' + i);
+    if (dot) dot.style.background = i < pinEntry.length ? 'var(--crimson)' : 'rgba(0,0,0,0.15)';
+  }
+}
+
+async function submitPin() {
+  const { error } = await supabaseClient.auth.signInWithPassword({
+    email: ADMIN_EMAIL,
+    password: pinEntry
+  });
+  pinEntry = '';
+  updatePinDots();
+  if (error) {
+    const errEl = document.getElementById('pinError');
+    if (errEl) errEl.textContent = 'Incorrect PIN';
+    return;
+  }
   await checkAdminSession();
 }
 
@@ -512,86 +556,6 @@ async function renderAdminContent(email) {
     </div>
 
     <div class="section">
-      <h3>Add Fixture</h3>
-      <div class="form-group">
-        <label>Opponent</label>
-        <input type="text" id="fixtureOpponent" placeholder="e.g., Park Rangers">
-      </div>
-      <div class="form-group">
-        <label>Date</label>
-        <input type="date" id="fixtureDate">
-      </div>
-      <div class="form-group">
-        <label>Meet Time (optional)</label>
-        <input type="time" id="fixtureMeetTime">
-      </div>
-      <div class="form-group">
-        <label>Kick-off Time</label>
-        <input type="time" id="fixtureTime">
-      </div>
-      <div class="form-group">
-        <label>Home or Away?</label>
-        <select id="fixtureHomeAway">
-          <option value="Home">Home</option>
-          <option value="Away">Away</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Location (optional)</label>
-        <input type="text" id="fixtureLocation" placeholder="e.g., Cams Alders, Fareham">
-      </div>
-      <div class="form-group">
-        <label>Comments (optional)</label>
-        <textarea id="fixtureComments" rows="3" placeholder="e.g., Parking is £2 at the clubhouse, pitch is the astro behind the school" style="width:100%;padding:8px 12px;border:1.5px solid var(--grey-200);border-radius:6px;font-size:14px;font-family:'Inter',sans-serif;outline:none;resize:vertical;"></textarea>
-      </div>
-      <button class="btn" onclick="addFixture()">Add Fixture</button>
-    </div>
-
-    <div class="section">
-      <h3>Edit Fixture</h3>
-      <div class="form-group">
-        <label>Select Fixture</label>
-        <select id="editFixtureSelect" onchange="loadFixtureForEdit()">
-          <option value="">-- Select a fixture --</option>
-        </select>
-      </div>
-      <div id="editFixtureForm" style="display:none;">
-        <div class="form-group">
-          <label>Opponent</label>
-          <input type="text" id="editFixtureOpponent">
-        </div>
-        <div class="form-group">
-          <label>Date</label>
-          <input type="date" id="editFixtureDate">
-        </div>
-        <div class="form-group">
-          <label>Meet Time (optional)</label>
-          <input type="time" id="editFixtureMeetTime">
-        </div>
-        <div class="form-group">
-          <label>Kick-off Time</label>
-          <input type="time" id="editFixtureTime">
-        </div>
-        <div class="form-group">
-          <label>Home or Away?</label>
-          <select id="editFixtureHomeAway">
-            <option value="Home">Home</option>
-            <option value="Away">Away</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Location (optional)</label>
-          <input type="text" id="editFixtureLocation" placeholder="e.g., Cams Alders, Fareham">
-        </div>
-        <div class="form-group">
-          <label>Comments (optional)</label>
-          <textarea id="editFixtureComments" rows="3" placeholder="e.g., Parking is £2 at the clubhouse, pitch is the astro behind the school" style="width:100%;padding:8px 12px;border:1.5px solid var(--grey-200);border-radius:6px;font-size:14px;font-family:'Inter',sans-serif;outline:none;resize:vertical;"></textarea>
-        </div>
-        <button class="btn" onclick="saveFixtureEdit()">Save Changes</button>
-      </div>
-    </div>
-
-    <div class="section">
       <h3>Enter Match Result</h3>
       <div class="form-group">
         <label>Select Match</label>
@@ -609,13 +573,6 @@ async function renderAdminContent(email) {
           <input type="number" id="opponentGoals" min="0" placeholder="0">
         </div>
         <div class="form-group">
-          <label>Player of the Match</label>
-          <select id="potmSelect">
-            <option value="">-- None --</option>
-            ${PLAYERS.map(p => '<option>' + p + '</option>').join('')}
-          </select>
-        </div>
-        <div class="form-group">
           <label>Goalkeeper (for clean sheet tracking)</label>
           <select id="goalkeeperSelect">
             <option value="">-- None --</option>
@@ -625,7 +582,25 @@ async function renderAdminContent(email) {
         <h3 style="margin-top:20px;margin-bottom:12px;">Goal Scorers</h3>
         <div id="goalScorersList"></div>
         <button class="btn" style="margin-top:12px;" onclick="addGoalScorerInput()">+ Add Goal Scorer</button>
-        <button class="btn btn-gold" style="margin-top:12px;margin-left:8px;" onclick="saveResult()">Save Result</button>
+        <h3 style="margin-top:20px;margin-bottom:4px;">Player of the Match</h3>
+        <div class="form-group" style="margin-top:10px;">
+          <label>Parents\' choice</label>
+          <select id="potmSelect">
+            <option value="">-- None --</option>
+            ${PLAYERS.map(p => '<option>' + p + '</option>').join('')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Coaches\' choice</label>
+          <select id="coachesPotmSelect">
+            <option value="">-- None --</option>
+            ${PLAYERS.map(p => '<option>' + p + '</option>').join('')}
+          </select>
+        </div>
+        <h3 style="margin-top:20px;margin-bottom:8px;">Squad Attendance</h3>
+        <p style="font-size:12px;color:var(--grey-600);margin-bottom:10px;">All players default to attending. Tap anyone who did not play.</p>
+        <div id="adminAttendancePanel"></div>
+        <button class="btn btn-gold" style="margin-top:16px;" onclick="saveResult()">Save Result</button>
       </div>
     </div>
 
@@ -689,7 +664,7 @@ async function loadResults() {
   const data = await sbFetch('knights_match_results?select=*');
   results = {};
   data.forEach(r => {
-    results[r.fixture_id] = { knights: r.knights_goals, opponent: r.opponent_goals, potm: r.player_of_match, goalkeeper: r.goalkeeper };
+    results[r.fixture_id] = { knights: r.knights_goals, opponent: r.opponent_goals, potm: r.player_of_match, coachesPotm: r.coaches_player_of_match, goalkeeper: r.goalkeeper };
   });
 
   const goalData = await sbFetch('knights_goal_scorers?select=*');
@@ -922,7 +897,10 @@ function buildMatchCard(f) {
   // Player of the Match line for played matches
   let potmLine = '';
   if (isPlayed && res.potm) {
-    potmLine = '<div class="match-potm" style="grid-column: 1 / -1;">🌟 Player of the Match: ' + res.potm + '</div>';
+    potmLine += '<div class="match-potm" style="grid-column: 1 / -1;">👨‍👩‍👧 Parents\' POTM: ' + res.potm + '</div>';
+  }
+  if (isPlayed && res.coachesPotm) {
+    potmLine += '<div class="match-potm" style="grid-column: 1 / -1;">🏅 Coaches\' POTM: ' + res.coachesPotm + '</div>';
   }
 
   // Times line for unplayed fixtures
@@ -943,8 +921,8 @@ function buildMatchCard(f) {
     locationLine = '<div class="match-scorers" style="grid-column: 1 / -1;"><a href="' + mapLink(f.location) + '" target="_blank" rel="noopener" style="color:var(--crimson);">📍 ' + f.location + '</a></div>';
   }
 
-  // "Who's coming?" for fixtures that haven't been played yet
-  const availabilitySection = isPlayed ? '' : buildAvailabilitySection(f.id, true);
+  // "Who's coming?" hidden from public — managed by admin only
+  const availabilitySection = '';
 
   return '<div class="match-card">' +
     '<div class="match-team home">Knights<div class="match-meta">' + formatDate(f.date) + '</div></div>' +
@@ -1008,11 +986,10 @@ function renderFixtures() {
     html += '<div class="next-match-card">' +
       '<div class="next-match-label">NEXT MATCH</div>' +
       '<div class="next-match-teams">Knights vs ' + nextMatch.opponent + '</div>' +
-      '<div class="next-match-detail">' + formatDate(nextMatch.date) + ' · ' + nextMatch.home_away + '</div>' +
+      '<div class="next-match-detail" style="font-size:16px;color:rgba(255,255,255,0.85);">' + formatDate(nextMatch.date) + ' · ' + nextMatch.home_away + '</div>' +
       locationLine +
       buildNotesLine(nextMatch.comments) +
       '<div class="next-match-times">' + timesDisplay + '</div>' +
-      buildAvailabilitySection(nextMatch.id) +
       '</div>';
   } else if (upcoming.length === 0) {
     html += '<div class="next-match-card">' +
@@ -1115,18 +1092,19 @@ function renderPlayerStats() {
   const gkNames = new Set(playedFixtures.map(f => results[f.id].goalkeeper).filter(Boolean));
 
   const stats = squad.map(p => {
-    let played = 0, goals = 0, cleanSheets = 0, potm = 0;
+    let played = 0, goals = 0, cleanSheets = 0, potm = 0, coachesPotm = 0;
     const hasBeenGK = gkNames.has(p.name);
     playedFixtures.forEach(f => {
       const res = results[f.id];
       if ((availability[f.id] || {})[p.id] === 'yes') played++;
       if (res.potm === p.name) potm++;
+      if (res.coachesPotm === p.name) coachesPotm++;
       if (hasBeenGK && res.goalkeeper === p.name && res.opponent === 0) cleanSheets++;
       (goalScorers[f.id] || []).forEach(s => {
         if (s.player === p.name) goals += s.goals;
       });
     });
-    return { name: p.name, played, goals, cleanSheets, potm, hasBeenGK };
+    return { name: p.name, played, goals, cleanSheets, potm, coachesPotm, hasBeenGK };
   });
 
   stats.sort((a, b) => {
@@ -1153,14 +1131,15 @@ function renderPlayerStats() {
     '<th class="sortable" onclick="setStatsSort(\'played\')">P' + sortArrow('played') + '</th>' +
     '<th class="sortable" onclick="setStatsSort(\'goals\')">G' + sortArrow('goals') + '</th>' +
     '<th class="sortable" onclick="setStatsSort(\'cleanSheets\')">CS' + sortArrow('cleanSheets') + '</th>' +
-    '<th class="sortable" onclick="setStatsSort(\'potm\')">POTM' + sortArrow('potm') + '</th>' +
+    '<th class="sortable" onclick="setStatsSort(\'potm\')" title="Parents\' Player of the Match">PP</th>' +
+    '<th class="sortable" onclick="setStatsSort(\'coachesPotm\')" title="Coaches\' Player of the Match">CP' + sortArrow('coachesPotm') + '</th>' +
     '</tr>';
   stats.forEach(s => {
     const csDisplay = s.hasBeenGK ? s.cleanSheets : '<span style="color:var(--grey-400);">—</span>';
-    html += '<tr><td>' + s.name + '</td><td>' + s.played + '</td><td>' + s.goals + '</td><td>' + csDisplay + '</td><td>' + s.potm + '</td></tr>';
+    html += '<tr><td>' + s.name + '</td><td>' + s.played + '</td><td>' + s.goals + '</td><td>' + csDisplay + '</td><td>' + s.potm + '</td><td>' + s.coachesPotm + '</td></tr>';
   });
   html += '</table>' +
-    '<div style="font-size:11px;color:var(--grey-400);margin-top:10px;">P = matches attended (based on "Who\'s coming?" yes votes) · G = goals · CS = clean sheets as goalkeeper · POTM = Player of the Match awards · tap a column to sort</div>' +
+    '<div style="font-size:11px;color:var(--grey-400);margin-top:10px;">P = matches attended · G = goals · CS = clean sheets (goalkeeper only) · PP = Parents\' Player of the Match · CP = Coaches\' Player of the Match · tap column to sort</div>' +
     '</div>';
 
   container.innerHTML = html;
@@ -1368,6 +1347,56 @@ function populateMatchSelect() {
   });
 }
 
+function populateAttendanceSelect() {
+  const select = document.getElementById('attendanceSelect');
+  if (!select) return;
+  const current = select.value;
+  select.innerHTML = '<option value="">-- Select a fixture --</option>';
+  fixtures.forEach(f => {
+    const label = f.opponent + ' (' + f.date + ')';
+    select.innerHTML += '<option value="' + f.id + '">' + label + '</option>';
+  });
+  if (current) { select.value = current; renderAdminAttendance(); }
+}
+
+function renderAdminAttendance(fixtureId) {
+  const panel = document.getElementById('adminAttendancePanel');
+  if (!panel) return;
+  if (!fixtureId || squad.length === 0) { panel.innerHTML = ''; return; }
+
+  const fixtureAvail = availability[fixtureId] || {};
+  let html = '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;">';
+  squad.forEach(p => {
+    const status = fixtureAvail[p.id] || 'yes';
+    const isOut = status === 'no';
+    html += '<button onclick="adminToggleAttendance(' + fixtureId + ',' + p.id + ')" ' +
+      'style="padding:8px 14px;border-radius:8px;border:2px solid ' + (isOut ? 'var(--red)' : '#16a34a') + ';' +
+      'background:' + (isOut ? 'rgba(220,38,38,0.08)' : 'rgba(22,163,74,0.08)') + ';' +
+      'color:' + (isOut ? 'var(--red)' : '#16a34a') + ';' +
+      'font-size:13px;font-weight:600;font-family:Inter,sans-serif;cursor:pointer;">' +
+      (isOut ? '✕ ' : '✓ ') + p.name +
+      '</button>';
+  });
+  html += '</div><p style="font-size:11px;color:var(--grey-400);margin-top:10px;">Tap to toggle · Green = attended · Red = did not play</p>';
+  panel.innerHTML = html;
+}
+
+async function adminToggleAttendance(fixtureId, playerId) {
+  const current = (availability[fixtureId] || {})[playerId] || 'yes';
+  const next = current === 'yes' ? 'no' : 'yes';
+  try {
+    await sbFetch('knights_availability?on_conflict=fixture_id,player_id', {
+      method: 'POST',
+      headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
+      body: JSON.stringify([{ fixture_id: fixtureId, player_id: playerId, status: next }])
+    });
+    await loadAvailability();
+    renderAdminAttendance(fixtureId);
+  } catch(e) {
+    showToast('Error: ' + e.message, true);
+  }
+}
+
 function populateEditFixtureSelect() {
   const select = document.getElementById('editFixtureSelect');
   if (!select) return; // Exit if element doesn't exist yet
@@ -1508,7 +1537,9 @@ function loadMatchForResult() {
   document.getElementById('knightsGoals').value = res.knights || '';
   document.getElementById('opponentGoals').value = res.opponent || '';
   document.getElementById('potmSelect').value = res.potm || '';
+  document.getElementById('coachesPotmSelect').value = res.coachesPotm || '';
   document.getElementById('goalkeeperSelect').value = res.goalkeeper || defaultGoalkeeper(matchId);
+  renderAdminAttendance(matchId);
 
   const scorers = goalScorers[matchId] || [];
   const list = document.getElementById('goalScorersList');
@@ -1586,6 +1617,7 @@ async function saveResult() {
   const knightsGoals = parseInt(document.getElementById('knightsGoals').value) || 0;
   const opponentGoals = parseInt(document.getElementById('opponentGoals').value) || 0;
   const potm = document.getElementById('potmSelect').value || null;
+  const coachesPotm = document.getElementById('coachesPotmSelect').value || null;
   const goalkeeper = document.getElementById('goalkeeperSelect').value || null;
 
   const scorerInputs = document.querySelectorAll('#goalScorersList .goal-inputs');
@@ -1605,7 +1637,7 @@ async function saveResult() {
     // Insert new result
     await sbFetch('knights_match_results', {
       method: 'POST',
-      body: JSON.stringify([{ fixture_id: matchId, knights_goals: knightsGoals, opponent_goals: opponentGoals, player_of_match: potm, goalkeeper }])
+      body: JSON.stringify([{ fixture_id: matchId, knights_goals: knightsGoals, opponent_goals: opponentGoals, player_of_match: potm, coaches_player_of_match: coachesPotm, goalkeeper }])
     });
 
     // Insert goal scorers
