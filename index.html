@@ -507,14 +507,6 @@ async function renderAdminContent(email) {
           <label>Name</label>
           <input type="text" id="squadName" placeholder="e.g., Alfie">
         </div>
-        <div class="form-group">
-          <label>Shirt Number</label>
-          <input type="number" id="squadNumber" min="1" placeholder="e.g., 7">
-        </div>
-        <div class="form-group">
-          <label>Date of Birth</label>
-          <input type="date" id="squadDob">
-        </div>
         <button class="btn" onclick="addSquadPlayer()">Add Player</button>
       </div>
     </div>
@@ -709,7 +701,7 @@ async function loadResults() {
 }
 
 async function loadSquad() {
-  squad = await sbFetch('knights_squad?select=*&order=shirt_number');
+  squad = await sbFetch('knights_squad?select=*&order=name');
   if (squad.length > 0) {
     PLAYERS = squad.map(p => p.name);
   }
@@ -984,12 +976,17 @@ function renderFixtures() {
     }
   });
 
-  // Anything without a result yet stays here; once a result is entered it
-  // moves to the Results tab. The next match is already shown in the hero
-  // card above, so it's excluded from this list to avoid showing it twice.
+  // Anything without a result yet stays here
   const upcoming = fixtures.filter(f => results[f.id] === undefined && (!nextMatch || f.id !== nextMatch.id));
 
-  let html = '';
+  // Season notice banner + dismissible home screen tip
+  let html = '<div style="background:var(--crimson);border-radius:10px;padding:14px 16px;margin-bottom:8px;font-size:13px;color:#fff;line-height:1.6;">' +
+    'Results and player stats for the 26/27 Fareham Knights season. Fixtures and training are managed on Spond.' +
+    '</div>' +
+    '<div id="homeScreenTip" style="background:var(--gold);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:var(--ink);display:flex;align-items:center;justify-content:space-between;gap:8px;">' +
+    '<span>📲 Tap <strong>Share → Add to Home Screen</strong> for quick access</span>' +
+    '<button onclick="document.getElementById(\'homeScreenTip\').style.display=\'none\'" style="background:none;border:none;cursor:pointer;font-size:16px;color:var(--ink);padding:0;line-height:1;flex-shrink:0;">✕</button>' +
+    '</div>';
 
   // Next match hero card
   if (nextMatch) {
@@ -1181,7 +1178,6 @@ function renderSquad() {
   let html = '';
   squad.forEach(p => {
     html += '<div class="leaderboard-item">' +
-      '<div class="leaderboard-rank">' + (p.shirt_number != null ? p.shirt_number : '-') + '</div>' +
       '<div class="leaderboard-name">' + p.name + '</div>' +
       '</div>';
   });
@@ -1445,7 +1441,7 @@ async function saveFixtureEdit() {
 let squadAdmin = [];
 
 async function loadSquadAdmin() {
-  squadAdmin = await sbFetch('knights_squad?select=*,knights_squad_details(date_of_birth)&order=shirt_number');
+  squadAdmin = await sbFetch('knights_squad?select=*&order=name');
 }
 
 function renderSquadAdminList() {
@@ -1457,13 +1453,9 @@ function renderSquadAdminList() {
     return;
   }
 
-  let html = '<table class="table"><tr><th>#</th><th>Name</th><th>Date of Birth</th><th></th></tr>';
+  let html = '<table class="table"><tr><th>Name</th><th></th></tr>';
   squadAdmin.forEach(p => {
-    const details = p.knights_squad_details;
-    const dob = details && details.date_of_birth ? formatDate(details.date_of_birth) : '-';
-    html += '<tr><td>' + (p.shirt_number != null ? p.shirt_number : '-') + '</td>' +
-      '<td>' + p.name + '</td>' +
-      '<td>' + dob + '</td>' +
+    html += '<tr><td>' + p.name + '</td>' +
       '<td><button class="btn" style="padding:4px 8px;font-size:11px;" onclick="deleteSquadPlayer(' + p.id + ')">Remove</button></td></tr>';
   });
   html += '</table>';
@@ -1472,28 +1464,15 @@ function renderSquadAdminList() {
 
 async function addSquadPlayer() {
   const name = document.getElementById('squadName').value.trim();
-  const numberVal = document.getElementById('squadNumber').value;
-  const shirtNumber = numberVal ? parseInt(numberVal) : null;
-  const dob = document.getElementById('squadDob').value || null;
-
   if (!name) { showToast('Enter a name', true); return; }
 
   try {
-    const created = await sbFetch('knights_squad', {
+    await sbFetch('knights_squad', {
       method: 'POST',
-      body: JSON.stringify([{ name, shirt_number: shirtNumber }])
+      body: JSON.stringify([{ name }])
     });
 
-    if (dob) {
-      await sbFetch('knights_squad_details', {
-        method: 'POST',
-        body: JSON.stringify([{ player_id: created[0].id, date_of_birth: dob }])
-      });
-    }
-
     document.getElementById('squadName').value = '';
-    document.getElementById('squadNumber').value = '';
-    document.getElementById('squadDob').value = '';
 
     await loadSquadAdmin();
     renderSquadAdminList();
@@ -1568,10 +1547,22 @@ async function addFixture() {
   const meet = meetTime ? new Date(date + 'T' + meetTime).toISOString() : null;
 
   try {
-    await sbFetch('knights_fixtures', {
+    const created = await sbFetch('knights_fixtures', {
       method: 'POST',
       body: JSON.stringify([{ opponent, date, kickoff_time: kickoff, meet_time: meet, home_away: homeAway, location, comments }])
     });
+
+    // Default all squad members to attending. Coach marks absentees individually.
+    if (created && created[0] && squad.length > 0) {
+      const fixtureId = created[0].id;
+      const defaultVotes = squad.map(p => ({ fixture_id: fixtureId, player_id: p.id, status: 'yes' }));
+      await sbFetch('knights_availability?on_conflict=fixture_id,player_id', {
+        method: 'POST',
+        headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
+        body: JSON.stringify(defaultVotes)
+      });
+      await loadAvailability();
+    }
 
     document.getElementById('fixtureOpponent').value = '';
     document.getElementById('fixtureDate').value = '';
