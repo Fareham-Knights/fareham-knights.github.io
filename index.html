@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Fareham Knights">
+<meta name="apple-mobile-web-app-title" content="Knights">
 <link rel="apple-touch-icon" href="apple-touch-icon-v3.png">
 <title>Fareham Knights U10 - Match Tracker</title>
 <style>
@@ -715,8 +715,8 @@ function applyConfig() {
   const accent      = teamConfig.accent_colour  || '#e8c468';
 
   document.title = name + ' - Match Tracker';
-  const metaTitle = document.querySelector('meta[name="apple-mobile-web-app-title"]');
-  if (metaTitle) metaTitle.setAttribute('content', name);
+  // Home screen icon title is kept short and fixed — iOS truncates long
+  // titles awkwardly, so this is intentionally not tied to Team Settings.
 
   const teamNameEl = document.getElementById('teamName');
   if (teamNameEl) teamNameEl.textContent = name;
