@@ -120,7 +120,21 @@
     border-radius: 2px;
     margin-top: 8px;
   }
-  .match-card { background: var(--white); border-radius: 10px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.07); display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; border-left: 4px solid var(--crimson); }
+  .match-card { background: var(--white); border-radius: 10px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.07); display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; border-left: 4px solid var(--crimson); position: relative; }
+  .share-text {
+    grid-column: 1 / -1;
+    font-size: 11px;
+    color: #c4c8ce;
+    text-decoration: none;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+    text-align: center;
+    margin-top: 0;
+    font-family: 'Inter', sans-serif;
+  }
+  .share-text:active { color: var(--grey-400); }
   .next-match-card {
     background: linear-gradient(135deg, var(--crimson) 0%, var(--ink) 100%);
     border-radius: 12px;
@@ -917,14 +931,22 @@ function buildMatchCard(f) {
     }
   }
 
-  // Location line, with a Google Maps link, when set
+  // Location is only useful before kickoff — once a result is in, the share
+  // button below replaces it as the relevant action.
   let locationLine = '';
-  if (f.location) {
+  if (f.location && !isPlayed) {
     locationLine = '<div class="match-scorers" style="grid-column: 1 / -1;"><a href="' + mapLink(f.location) + '" target="_blank" rel="noopener" style="color:var(--crimson);">📍 ' + f.location + '</a></div>';
   }
 
   // "Who's coming?" hidden from public — managed by admin only
   const availabilitySection = '';
+
+  // Plain-text share trigger, shown only once a result exists. Sits in
+  // normal document flow below all other content, never overlapping the
+  // score or team names regardless of opponent name length.
+  const shareText = isPlayed
+    ? '<button class="share-text" onclick="shareResult(' + f.id + ')">Share result</button>'
+    : '';
 
   return '<div class="match-card">' +
     '<div class="match-team home">Knights<div class="match-meta">' + formatDate(f.date) + '</div></div>' +
@@ -936,10 +958,49 @@ function buildMatchCard(f) {
     scorersLine +
     potmLine +
     availabilitySection +
+    shareText +
     '</div>';
 }
 
-// ── Fixtures tab ────────────────────────────────────────────────────────
+// Builds a WhatsApp-friendly summary of a result and opens the device's
+// native share sheet (falls back to copying to clipboard if unsupported).
+async function shareResult(fixtureId) {
+  const f = fixtures.find(x => x.id === fixtureId);
+  const res = results[fixtureId];
+  if (!f || !res) return;
+
+  let text = 'Knights ' + res.knights + ' - ' + res.opponent + ' ' + f.opponent + '\n\n';
+
+  const scorers = goalScorers[fixtureId] || [];
+  if (scorers.length > 0) {
+    text += '⚽ Goals: ' + scorers.map(s => s.player + ' ' + s.goals).join(', ') + '\n';
+  }
+  if (res.coachesPotm) {
+    text += '🏅 Coaches POTM: ' + res.coachesPotm + '\n';
+  }
+  if (res.potm) {
+    text += '⭐ Parents POTM: ' + res.potm + '\n';
+  }
+
+  text = text.trim();
+
+  if (navigator.share) {
+    try {
+      await navigator.share({ text });
+    } catch(e) {
+      // User cancelled the share sheet — nothing to do
+    }
+  } else {
+    try {
+      await navigator.clipboard.writeText(text);
+      showToast('Result copied — paste into WhatsApp');
+    } catch(e) {
+      showToast('Could not share or copy', true);
+    }
+  }
+}
+
+
 function renderFixtures() {
   const container = document.getElementById('fixturesContent');
   if (fixtures.length === 0) { container.innerHTML = '<div class="empty-state">No fixtures added yet</div>'; return; }
