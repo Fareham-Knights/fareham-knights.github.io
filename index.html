@@ -572,6 +572,86 @@ async function renderAdminContent(email) {
     </div>
 
     <div class="section">
+      <h3>Add Fixture</h3>
+      <div class="form-group">
+        <label>Opponent</label>
+        <input type="text" id="fixtureOpponent" placeholder="e.g., Park Rangers">
+      </div>
+      <div class="form-group">
+        <label>Date</label>
+        <input type="date" id="fixtureDate">
+      </div>
+      <div class="form-group">
+        <label>Meet Time (optional)</label>
+        <input type="time" id="fixtureMeetTime">
+      </div>
+      <div class="form-group">
+        <label>Kick-off Time</label>
+        <input type="time" id="fixtureTime">
+      </div>
+      <div class="form-group">
+        <label>Home or Away?</label>
+        <select id="fixtureHomeAway">
+          <option value="Home">Home</option>
+          <option value="Away">Away</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Location (optional)</label>
+        <input type="text" id="fixtureLocation" placeholder="e.g., Cams Alders, Fareham">
+      </div>
+      <div class="form-group">
+        <label>Comments (optional)</label>
+        <textarea id="fixtureComments" rows="3" placeholder="e.g., Parking is £2 at the clubhouse, pitch is the astro behind the school" style="width:100%;padding:8px 12px;border:1.5px solid var(--grey-200);border-radius:6px;font-size:14px;font-family:'Inter',sans-serif;outline:none;resize:vertical;"></textarea>
+      </div>
+      <button class="btn" onclick="addFixture()">Add Fixture</button>
+    </div>
+
+    <div class="section">
+      <h3>Edit Fixture</h3>
+      <div class="form-group">
+        <label>Select Fixture</label>
+        <select id="editFixtureSelect" onchange="loadFixtureForEdit()">
+          <option value="">-- Select a fixture --</option>
+        </select>
+      </div>
+      <div id="editFixtureForm" style="display:none;">
+        <div class="form-group">
+          <label>Opponent</label>
+          <input type="text" id="editFixtureOpponent">
+        </div>
+        <div class="form-group">
+          <label>Date</label>
+          <input type="date" id="editFixtureDate">
+        </div>
+        <div class="form-group">
+          <label>Meet Time (optional)</label>
+          <input type="time" id="editFixtureMeetTime">
+        </div>
+        <div class="form-group">
+          <label>Kick-off Time</label>
+          <input type="time" id="editFixtureTime">
+        </div>
+        <div class="form-group">
+          <label>Home or Away?</label>
+          <select id="editFixtureHomeAway">
+            <option value="Home">Home</option>
+            <option value="Away">Away</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Location (optional)</label>
+          <input type="text" id="editFixtureLocation" placeholder="e.g., Cams Alders, Fareham">
+        </div>
+        <div class="form-group">
+          <label>Comments (optional)</label>
+          <textarea id="editFixtureComments" rows="3" placeholder="e.g., Parking is £2 at the clubhouse, pitch is the astro behind the school" style="width:100%;padding:8px 12px;border:1.5px solid var(--grey-200);border-radius:6px;font-size:14px;font-family:'Inter',sans-serif;outline:none;resize:vertical;"></textarea>
+        </div>
+        <button class="btn" onclick="saveFixtureEdit()">Save Changes</button>
+      </div>
+    </div>
+
+    <div class="section">
       <h3>Enter Match Result</h3>
       <div class="form-group">
         <label>Select Match</label>
