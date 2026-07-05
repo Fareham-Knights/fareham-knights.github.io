@@ -1647,15 +1647,20 @@ async function addFixture() {
     });
 
     // Default all squad members to attending. Coach marks absentees individually.
-    if (created && created[0] && squad.length > 0) {
-      const fixtureId = created[0].id;
-      const defaultVotes = squad.map(p => ({ fixture_id: fixtureId, player_id: p.id, status: 'yes' }));
-      await sbFetch('knights_availability?on_conflict=fixture_id,player_id', {
-        method: 'POST',
-        headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
-        body: JSON.stringify(defaultVotes)
-      });
-      await loadAvailability();
+    // Re-fetch squad fresh here rather than relying on the in-memory array, which
+    // may be stale or empty if the Squad admin section was never expanded this session.
+    if (created && created[0]) {
+      await loadSquad();
+      if (squad.length > 0) {
+        const fixtureId = created[0].id;
+        const defaultVotes = squad.map(p => ({ fixture_id: fixtureId, player_id: p.id, status: 'yes' }));
+        await sbFetch('knights_availability?on_conflict=fixture_id,player_id', {
+          method: 'POST',
+          headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
+          body: JSON.stringify(defaultVotes)
+        });
+        await loadAvailability();
+      }
     }
 
     document.getElementById('fixtureOpponent').value = '';
