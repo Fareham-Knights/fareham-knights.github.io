@@ -1118,21 +1118,35 @@ function renderFixtures() {
 
   const now = new Date();
 
-  // Find the next unplayed future fixture. Draft results don't count as played.
-  let nextMatch = null;
+  // Check for a match currently in progress (draft result exists, kickoff has passed)
+  let liveMatch = null;
   fixtures.forEach(f => {
+    const res = results[f.id];
     const kickoff = new Date(f.kickoff_time);
-    const isPlayed = results[f.id] !== undefined && results[f.id].published === true;
-    if (!isPlayed && kickoff > now && (!nextMatch || kickoff < new Date(nextMatch.kickoff_time))) {
-      nextMatch = f;
+    if (res && res.published === false && kickoff <= now) {
+      if (!liveMatch || kickoff > new Date(liveMatch.kickoff_time)) liveMatch = f;
     }
   });
 
-  // Anything without a published result stays here
+  // Find the next upcoming fixture (no result at all, or unpublished but future)
+  let nextMatch = null;
+  if (!liveMatch) {
+    fixtures.forEach(f => {
+      const kickoff = new Date(f.kickoff_time);
+      const isPlayed = results[f.id] !== undefined && results[f.id].published === true;
+      if (!isPlayed && !results[f.id] && kickoff > now && (!nextMatch || kickoff < new Date(nextMatch.kickoff_time))) {
+        nextMatch = f;
+      }
+    });
+  }
+
+  const heroFixture = liveMatch || nextMatch;
+
+  // Anything without a published result stays in the list below the hero
   const upcoming = fixtures.filter(f => {
     const res = results[f.id];
     const isPublished = res !== undefined && res.published === true;
-    return !isPublished && (!nextMatch || f.id !== nextMatch.id);
+    return !isPublished && (!heroFixture || f.id !== heroFixture.id);
   });
 
   // Season notice banner + dismissible home screen tip
@@ -1144,10 +1158,23 @@ function renderFixtures() {
     '<button onclick="document.getElementById(\'homeScreenTip\').style.display=\'none\'" style="background:none;border:none;cursor:pointer;font-size:16px;color:var(--ink);padding:0;line-height:1;flex-shrink:0;">✕</button>' +
     '</div>';
 
-  // Next match hero card
-  if (nextMatch) {
-    const kickoff = new Date(nextMatch.kickoff_time);
+  // Live score hero card
+  if (liveMatch) {
+    const res = results[liveMatch.id];
+    const teamName = teamConfig.team_name || 'Knights';
+    html += '<div class="next-match-card">' +
+      '<div class="next-match-label" style="color:var(--gold);letter-spacing:3px;">🔴 LIVE</div>' +
+      '<div class="next-match-teams">' + teamName + ' vs ' + liveMatch.opponent + '</div>' +
+      '<div class="next-match-detail" style="font-size:16px;color:rgba(255,255,255,0.85);">' + formatDate(liveMatch.date) + ' · ' + liveMatch.home_away + '</div>' +
+      '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:52px;color:var(--gold);line-height:1;margin:12px 0;">' +
+        res.knights + ' <span style="font-size:32px;color:rgba(255,255,255,0.5);">–</span> ' + res.opponent +
+      '</div>' +
+      '<div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:-4px;">Updates every 5 minutes · pull down to refresh now</div>' +
+      '</div>';
 
+  // Regular next match hero card
+  } else if (nextMatch) {
+    const kickoff = new Date(nextMatch.kickoff_time);
     const koTimeStr = kickoff.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
     let timesDisplay = '';
     if (nextMatch.meet_time) {
@@ -1156,11 +1183,9 @@ function renderFixtures() {
     } else {
       timesDisplay = 'KO ' + koTimeStr;
     }
-
     const locationLine = nextMatch.location
       ? '<div class="next-match-detail"><a href="' + mapLink(nextMatch.location) + '" target="_blank" rel="noopener" style="color:var(--gold);">📍 ' + nextMatch.location + '</a></div>'
       : '';
-
     html += '<div class="next-match-card">' +
       '<div class="next-match-label">NEXT MATCH</div>' +
       '<div class="next-match-teams">Knights vs ' + nextMatch.opponent + '</div>' +
@@ -1169,6 +1194,7 @@ function renderFixtures() {
       buildNotesLine(nextMatch.comments) +
       '<div class="next-match-times">' + timesDisplay + '</div>' +
       '</div>';
+
   } else if (upcoming.length === 0) {
     html += '<div class="next-match-card">' +
       '<div class="next-match-label">SEASON COMPLETE</div>' +
@@ -2055,6 +2081,15 @@ window.addEventListener('pageshow', (event) => {
     loadAndRender().catch(() => {});
   }
 });
+
+// Poll every 5 minutes when the Fixtures tab is open so parents see
+// live score updates automatically without needing to pull to refresh.
+setInterval(() => {
+  const tab = document.getElementById('tab-fixtures');
+  if (tab && tab.classList.contains('active') && document.visibilityState === 'visible') {
+    loadAndRender().catch(() => {});
+  }
+}, 5 * 60 * 1000);
 
 let toastTimer;
 function showToast(msg, error = false) {
