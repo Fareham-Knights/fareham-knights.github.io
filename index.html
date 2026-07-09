@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Knights">
 <link rel="apple-touch-icon" href="apple-touch-icon-v3.png">
-<title>Fareham Knights U10 - Match Tracker</title>
+<title>Fareham Knights - Match Tracker</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600&display=swap');
   :root {
@@ -329,7 +329,7 @@
   <div class="header-titles">
     <img class="header-crest" src="knights_crest.png" alt="team crest">
     <div>
-      <h1 id="teamName">Fareham Knights U10</h1>
+      <h1 id="teamName">Fareham Knights</h1>
       <div class="header-meta" id="coachesLine">Coaches: Sam Lloyd &amp; Louis Hider</div>
       <div class="header-meta" id="sponsorLine">Sponsor: <a id="sponsorLink" href="https://ksjlettings.co.uk/" target="_blank" rel="noopener" style="color:var(--gold);">KSJ Lettings</a></div>
     </div>
@@ -718,7 +718,7 @@ async function renderAdminContent(email) {
       <div id="teamSettingsBody" style="display:none; margin-top:16px;">
         <div class="form-group">
           <label>Team Name</label>
-          <input type="text" id="cfgTeamName" placeholder="e.g., Fareham Knights U10">
+          <input type="text" id="cfgTeamName" placeholder="e.g., Fareham Knights">
         </div>
         <div class="form-group">
           <label>Coaches</label>
@@ -776,7 +776,8 @@ async function loadResults() {
 }
 
 async function loadSquad() {
-  squad = await sbFetch('knights_squad?select=*&order=name');
+  const all = await sbFetch('knights_squad?select=*&order=name');
+  squad = all.filter(p => p.active !== false);
   if (squad.length > 0) {
     PLAYERS = squad.map(p => p.name);
   }
@@ -804,7 +805,7 @@ function darkenHex(hex, amount) {
 }
 
 function applyConfig() {
-  const name        = teamConfig.team_name     || 'Fareham Knights U10';
+  const name        = teamConfig.team_name     || 'Fareham Knights';
   const coaches     = teamConfig.coaches       || '';
   const sponsorName = teamConfig.sponsor_name  || '';
   const sponsorUrl  = teamConfig.sponsor_url   || '#';
@@ -1741,10 +1742,21 @@ function renderSquadAdminList() {
     return;
   }
 
-  let html = '<table class="table"><tr><th>Name</th><th></th></tr>';
+  let html = '<table class="table"><tr><th>Name</th><th>Status</th><th></th></tr>';
   squadAdmin.forEach(p => {
-    html += '<tr><td>' + p.name + '</td>' +
-      '<td><button class="btn" style="padding:4px 8px;font-size:11px;" onclick="deleteSquadPlayer(' + p.id + ')">Remove</button></td></tr>';
+    const isActive = p.active !== false;
+    const statusLabel = isActive
+      ? '<span style="color:var(--green);font-weight:600;font-size:11px;">Active</span>'
+      : '<span style="color:var(--grey-400);font-weight:600;font-size:11px;">Left</span>';
+    const toggleBtn = isActive
+      ? '<button class="btn" style="padding:4px 8px;font-size:11px;background:var(--grey-400);" onclick="togglePlayerActive(' + p.id + ', false)">Mark Left</button>'
+      : '<button class="btn" style="padding:4px 8px;font-size:11px;background:var(--green);" onclick="togglePlayerActive(' + p.id + ', true)">Reinstate</button>';
+    const deleteBtn = '<button class="btn" style="padding:4px 8px;font-size:11px;background:var(--red);margin-left:4px;" onclick="deleteSquadPlayer(' + p.id + ')">Delete</button>';
+
+    html += '<tr style="' + (isActive ? '' : 'opacity:0.5;') + '">' +
+      '<td>' + p.name + '</td>' +
+      '<td>' + statusLabel + '</td>' +
+      '<td style="white-space:nowrap;">' + toggleBtn + deleteBtn + '</td></tr>';
   });
   html += '</table>';
   container.innerHTML = html;
@@ -1767,6 +1779,22 @@ async function addSquadPlayer() {
     await loadSquad();
     renderSquad();
     showToast('Player added!');
+  } catch(e) {
+    showToast('Error: ' + e.message, true);
+  }
+}
+
+async function togglePlayerActive(id, active) {
+  try {
+    await sbFetch('knights_squad?id=eq.' + id, {
+      method: 'PATCH',
+      body: JSON.stringify({ active })
+    });
+    await loadSquadAdmin();
+    renderSquadAdminList();
+    await loadSquad();
+    renderSquad();
+    showToast(active ? 'Player reinstated' : 'Player marked as left');
   } catch(e) {
     showToast('Error: ' + e.message, true);
   }
