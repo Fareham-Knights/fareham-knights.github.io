@@ -696,7 +696,10 @@ async function renderAdminContent(email) {
         <h3 style="margin-top:20px;margin-bottom:8px;">Squad Attendance</h3>
         <p style="font-size:12px;color:var(--grey-600);margin-bottom:10px;">All players default to attending. Tap anyone who did not play.</p>
         <div id="adminAttendancePanel"></div>
-        <button class="btn btn-gold" style="margin-top:16px;" onclick="saveResult()">Save Result</button>
+        <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;">
+          <button class="btn" onclick="saveResult(false)">Save Draft</button>
+          <button class="btn btn-gold" onclick="saveResult(true)">Publish Result</button>
+        </div>
       </div>
       <button id="adminShareBtn" style="display:none;margin-top:12px;background:none;border:1.5px solid var(--grey-200);border-radius:8px;padding:10px 16px;font-size:13px;font-weight:600;color:var(--grey-600);cursor:pointer;font-family:Inter,sans-serif;width:100%;" onclick="shareCurrentResult()">↗ Share Result</button>
     </div>
@@ -764,7 +767,7 @@ async function loadResults() {
   const data = await sbFetch('knights_match_results?select=*');
   results = {};
   data.forEach(r => {
-    results[r.fixture_id] = { knights: r.knights_goals, opponent: r.opponent_goals, potm: r.player_of_match, coachesPotm: r.coaches_player_of_match, goalkeeper: r.goalkeeper };
+    results[r.fixture_id] = { knights: r.knights_goals, opponent: r.opponent_goals, potm: r.player_of_match, coachesPotm: r.coaches_player_of_match, goalkeeper: r.goalkeeper, published: r.published };
   });
 
   const goalData = await sbFetch('knights_goal_scorers?select=*');
@@ -966,7 +969,9 @@ function buildMatchCard(f) {
   const now = new Date();
   const res = results[f.id];
   const kickoff = new Date(f.kickoff_time);
-  const isPlayed = res !== undefined;
+  // Draft results (published=false) are invisible to parents — the fixture
+  // stays on the Fixtures tab as upcoming until the coach publishes.
+  const isPlayed = res !== undefined && res.published === true;
   const isFuture = kickoff > now;
 
   let result = '';
@@ -1113,18 +1118,22 @@ function renderFixtures() {
 
   const now = new Date();
 
-  // Find the next unplayed future fixture
+  // Find the next unplayed future fixture. Draft results don't count as played.
   let nextMatch = null;
   fixtures.forEach(f => {
     const kickoff = new Date(f.kickoff_time);
-    const isPlayed = results[f.id] !== undefined;
+    const isPlayed = results[f.id] !== undefined && results[f.id].published === true;
     if (!isPlayed && kickoff > now && (!nextMatch || kickoff < new Date(nextMatch.kickoff_time))) {
       nextMatch = f;
     }
   });
 
-  // Anything without a result yet stays here
-  const upcoming = fixtures.filter(f => results[f.id] === undefined && (!nextMatch || f.id !== nextMatch.id));
+  // Anything without a published result stays here
+  const upcoming = fixtures.filter(f => {
+    const res = results[f.id];
+    const isPublished = res !== undefined && res.published === true;
+    return !isPublished && (!nextMatch || f.id !== nextMatch.id);
+  });
 
   // Season notice banner + dismissible home screen tip
   let html = '<div style="background:var(--crimson);border-radius:10px;padding:14px 16px;margin-bottom:8px;font-size:13px;color:#fff;line-height:1.6;">' +
@@ -1179,7 +1188,7 @@ function renderResults() {
   const standings = [];
   fixtures.forEach(f => {
     const res = results[f.id];
-    if (!res) return;
+    if (!res || !res.published) return;
 
     const entry = standings[0] || { played: 0, wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0 };
     entry.played++;
@@ -1202,7 +1211,7 @@ function renderResults() {
   const goalDiff = s.goalsFor - s.goalsAgainst;
 
   // Build form string from last 5 played fixtures (chronological order)
-  const playedFixtures = fixtures.filter(f => results[f.id] !== undefined);
+  const playedFixtures = fixtures.filter(f => results[f.id] !== undefined && results[f.id].published === true);
   const recentForm = playedFixtures.slice(-10);
   let formHtml = '';
   recentForm.forEach(f => {
@@ -1254,7 +1263,7 @@ function renderPlayerStats() {
     return;
   }
 
-  const playedFixtures = fixtures.filter(f => results[f.id] !== undefined);
+  const playedFixtures = fixtures.filter(f => results[f.id] !== undefined && results[f.id].published === true);
 
   // Only players who've been recorded as goalkeeper ever show a CS count.
   // Everyone else gets a dash so outfield players aren't misleadingly shown as 0.
@@ -1315,7 +1324,7 @@ function renderPlayerStats() {
 }
 
 function exportStatsCSV() {
-  const playedFixtures = fixtures.filter(f => results[f.id] !== undefined);
+  const playedFixtures = fixtures.filter(f => results[f.id] !== undefined && results[f.id].published === true);
   const gkNames = new Set(playedFixtures.map(f => results[f.id].goalkeeper).filter(Boolean));
 
   const stats = squad.map(p => {
@@ -1393,7 +1402,7 @@ function exportSeasonCSV() {
   rows.push('');
   rows.push('PLAYER STATS');
   rows.push('Player,Played,Goals,Clean Sheets,Parents POTM,Coaches POTM');
-  const playedFixtures = fixtures.filter(f => results[f.id]);
+  const playedFixtures = fixtures.filter(f => results[f.id] && results[f.id].published === true);
   const gkNames = new Set(playedFixtures.map(f => results[f.id].goalkeeper).filter(Boolean));
   squad.forEach(p => {
     let played = 0, goals = 0, cleanSheets = 0, potm = 0, coachesPotm = 0;
@@ -1830,6 +1839,17 @@ function loadMatchForResult() {
   document.getElementById('goalkeeperSelect').value = res.goalkeeper || defaultGoalkeeper(matchId);
   renderAdminAttendance(matchId);
 
+  // Show a status label if this is already a saved draft
+  const existingLabel = document.getElementById('draftStatusLabel');
+  if (existingLabel) existingLabel.remove();
+  if (res.published === false) {
+    const label = document.createElement('p');
+    label.id = 'draftStatusLabel';
+    label.style.cssText = 'font-size:12px;color:var(--gold-dark);font-weight:600;margin-bottom:8px;';
+    label.textContent = '✎ Draft saved — not yet visible to parents';
+    form.prepend(label);
+  }
+
   const scorers = goalScorers[matchId] || [];
   const list = document.getElementById('goalScorersList');
   list.innerHTML = '';
@@ -1925,7 +1945,7 @@ async function addFixture() {
   }
 }
 
-async function saveResult() {
+async function saveResult(published = false) {
   const matchId = parseInt(document.getElementById('matchSelect').value);
   const knightsGoals = parseInt(document.getElementById('knightsGoals').value) || 0;
   const opponentGoals = parseInt(document.getElementById('opponentGoals').value) || 0;
@@ -1950,7 +1970,7 @@ async function saveResult() {
     // Insert new result
     await sbFetch('knights_match_results', {
       method: 'POST',
-      body: JSON.stringify([{ fixture_id: matchId, knights_goals: knightsGoals, opponent_goals: opponentGoals, player_of_match: potm, coaches_player_of_match: coachesPotm, goalkeeper }])
+      body: JSON.stringify([{ fixture_id: matchId, knights_goals: knightsGoals, opponent_goals: opponentGoals, player_of_match: potm, coaches_player_of_match: coachesPotm, goalkeeper, published }])
     });
 
     // Insert goal scorers
@@ -1968,8 +1988,11 @@ async function saveResult() {
     document.getElementById('resultForm').style.display = 'none';
     document.getElementById('matchSelect').value = '';
     const shareBtn = document.getElementById('adminShareBtn');
-    if (shareBtn) { shareBtn.style.display = 'inline-block'; shareBtn.dataset.fixtureId = matchId; }
-    showToast('Result saved!');
+    if (shareBtn) {
+      shareBtn.style.display = published ? 'block' : 'none';
+      if (published) shareBtn.dataset.fixtureId = matchId;
+    }
+    showToast(published ? 'Result published!' : 'Draft saved — not visible to parents yet');
   } catch(e) {
     showToast('Error: ' + e.message, true);
   }
