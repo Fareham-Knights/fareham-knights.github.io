@@ -698,12 +698,16 @@ async function renderAdminContent(email) {
         <div id="adminAttendancePanel"></div>
         <button class="btn btn-gold" style="margin-top:16px;" onclick="saveResult()">Save Result</button>
       </div>
+      <button id="adminShareBtn" style="display:none;margin-top:12px;background:none;border:1.5px solid var(--grey-200);border-radius:8px;padding:10px 16px;font-size:13px;font-weight:600;color:var(--grey-600);cursor:pointer;font-family:Inter,sans-serif;width:100%;" onclick="shareCurrentResult()">↗ Share Result</button>
     </div>
 
     <div class="section" style="border-top: 1px solid var(--grey-200); padding-top: 16px; margin-top: 8px;">
       <h3 style="margin:0 0 8px;font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px;color:var(--crimson);">Export Season Data</h3>
-      <p style="font-size:13px;color:var(--grey-600);margin-bottom:14px;">Downloads a complete snapshot of all fixtures, results, goals, squad, and player stats as a JSON file. Keep a copy at the end of each month and at the end of the season.</p>
-      <button class="btn" onclick="exportSeasonData()">⬇ Download Season Backup</button>
+      <p style="font-size:13px;color:var(--grey-600);margin-bottom:14px;">Download your season data. The CSV opens in Excel or Google Sheets. The JSON backup contains everything and is used to restore data if anything goes wrong.</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button class="btn" onclick="exportSeasonCSV()">⬇ Export as CSV</button>
+        <button class="btn" onclick="exportSeasonData()">⬇ Full Backup (JSON)</button>
+      </div>
     </div>
 
     <div class="section" style="border-top: 1px solid var(--grey-200); padding-top: 16px; margin-top: 8px;">
@@ -1021,12 +1025,8 @@ function buildMatchCard(f) {
   // "Who's coming?" hidden from public — managed by admin only
   const availabilitySection = '';
 
-  // Plain-text share trigger, shown only once a result exists. Sits in
-  // normal document flow below all other content, never overlapping the
-  // score or team names regardless of opponent name length.
-  const shareText = isPlayed
-    ? '<button class="share-text" onclick="shareResult(' + f.id + ')">Share result</button>'
-    : '';
+  // Share is admin-only — triggered from the Enter Match Result form after saving
+  const shareText = '';
 
   return '<div class="match-card">' +
     '<div class="match-team home">Knights<div class="match-meta">' + formatDate(f.date) + '</div></div>' +
@@ -1044,22 +1044,47 @@ function buildMatchCard(f) {
 
 // Builds a WhatsApp-friendly summary of a result and opens the device's
 // native share sheet (falls back to copying to clipboard if unsupported).
+function shareCurrentResult() {
+  const shareBtn = document.getElementById('adminShareBtn');
+  const fixtureId = shareBtn ? parseInt(shareBtn.dataset.fixtureId) : null;
+  if (fixtureId) shareResult(fixtureId);
+}
+
 async function shareResult(fixtureId) {
   const f = fixtures.find(x => x.id === fixtureId);
   const res = results[fixtureId];
   if (!f || !res) return;
 
-  let text = 'Knights ' + res.knights + ' - ' + res.opponent + ' ' + f.opponent + '\n\n';
+  const won  = res.knights > res.opponent;
+  const drew = res.knights === res.opponent;
+  const lost = res.knights < res.opponent;
+  const teamName = teamConfig.team_name || 'Knights';
 
+  // Opening line based on result
+  let text = '';
+  if (won)  text += '🏆 What a result! ' + teamName + ' win!\n\n';
+  else if (drew) text += '🤝 A hard-earned point for ' + teamName + '!\n\n';
+  else      text += '👏 Heads held high ' + teamName + '!\n\n';
+
+  // Score line
+  text += teamName + ' ' + res.knights + ' - ' + res.opponent + ' ' + f.opponent + '\n\n';
+
+  // Goal scorers
   const scorers = goalScorers[fixtureId] || [];
   if (scorers.length > 0) {
-    text += '⚽ Goals: ' + scorers.map(s => s.player + ' ' + s.goals).join(', ') + '\n';
+    text += '⚽ Well done to today\'s goalscorers:\n';
+    scorers.forEach(s => {
+      text += s.player + (s.goals > 1 ? ' (' + s.goals + ' goals)' : '') + '\n';
+    });
+    text += '\n';
   }
-  if (res.coachesPotm) {
-    text += '🏅 Coaches POTM: ' + res.coachesPotm + '\n';
-  }
-  if (res.potm) {
-    text += '⭐ Parents POTM: ' + res.potm + '\n';
+
+  // Players of the match
+  const hasPotm = res.potm || res.coachesPotm;
+  if (hasPotm) {
+    text += '🌟 Congratulations to today\'s Players of the Match:\n';
+    if (res.potm) text += '⭐ Parents\' choice: ' + res.potm + '\n';
+    if (res.coachesPotm) text += '🏅 Coaches\' choice: ' + res.coachesPotm + '\n';
   }
 
   text = text.trim();
@@ -1068,7 +1093,7 @@ async function shareResult(fixtureId) {
     try {
       await navigator.share({ text });
     } catch(e) {
-      // User cancelled the share sheet — nothing to do
+      // User cancelled — nothing to do
     }
   } else {
     try {
@@ -1288,6 +1313,41 @@ function renderPlayerStats() {
   container.innerHTML = html;
 }
 
+function exportStatsCSV() {
+  const playedFixtures = fixtures.filter(f => results[f.id] !== undefined);
+  const gkNames = new Set(playedFixtures.map(f => results[f.id].goalkeeper).filter(Boolean));
+
+  const stats = squad.map(p => {
+    let played = 0, goals = 0, cleanSheets = 0, potm = 0, coachesPotm = 0;
+    const hasBeenGK = gkNames.has(p.name);
+    playedFixtures.forEach(f => {
+      const res = results[f.id];
+      if ((availability[f.id] || {})[p.id] === 'yes') played++;
+      if (res.potm === p.name) potm++;
+      if (res.coachesPotm === p.name) coachesPotm++;
+      if (hasBeenGK && res.goalkeeper === p.name && res.opponent === 0) cleanSheets++;
+      (goalScorers[f.id] || []).forEach(s => { if (s.player === p.name) goals += s.goals; });
+    });
+    return { name: p.name, played, goals, cleanSheets: hasBeenGK ? cleanSheets : '', potm, coachesPotm };
+  });
+
+  const teamName = (teamConfig.team_name || 'Knights').replace(/\s+/g, '_');
+  const date = new Date().toISOString().slice(0, 10);
+  const header = 'Player,Played,Goals,Clean Sheets,Parents POTM,Coaches POTM';
+  const rows = stats.map(s =>
+    [s.name, s.played, s.goals, s.cleanSheets, s.potm, s.coachesPotm].join(',')
+  );
+  const csv = [header, ...rows].join('\n');
+
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = teamName + '_stats_' + date + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 // ── Squad tab ───────────────────────────────────────────────────────────
 function renderSquad() {
   const container = document.getElementById('squadContent');
@@ -1308,6 +1368,62 @@ function renderSquad() {
 }
 
 // ── Admin: season data export ────────────────────────────────────────────
+function exportSeasonCSV() {
+  const teamName = (teamConfig.team_name || 'Knights').replace(/\s+/g, '_');
+  const date = new Date().toISOString().slice(0, 10);
+  const rows = [];
+
+  // ── Results section ──────────────────────────────────────────────────
+  rows.push('RESULTS');
+  rows.push('Date,Opponent,Home/Away,Knights,Opponent,Result,Goal Scorers,Parents POTM,Coaches POTM');
+  fixtures.filter(f => results[f.id]).forEach(f => {
+    const res = results[f.id];
+    const outcome = res.knights > res.opponent ? 'W' : res.knights === res.opponent ? 'D' : 'L';
+    const scorerStr = (goalScorers[f.id] || []).map(s => s.player + ' ' + s.goals).join('; ');
+    rows.push([
+      f.date, '"' + f.opponent + '"', f.home_away,
+      res.knights, res.opponent, outcome,
+      '"' + scorerStr + '"',
+      res.potm || '', res.coachesPotm || ''
+    ].join(','));
+  });
+
+  // ── Player stats section ─────────────────────────────────────────────
+  rows.push('');
+  rows.push('PLAYER STATS');
+  rows.push('Player,Played,Goals,Clean Sheets,Parents POTM,Coaches POTM');
+  const playedFixtures = fixtures.filter(f => results[f.id]);
+  const gkNames = new Set(playedFixtures.map(f => results[f.id].goalkeeper).filter(Boolean));
+  squad.forEach(p => {
+    let played = 0, goals = 0, cleanSheets = 0, potm = 0, coachesPotm = 0;
+    const hasBeenGK = gkNames.has(p.name);
+    playedFixtures.forEach(f => {
+      const res = results[f.id];
+      if ((availability[f.id] || {})[p.id] === 'yes') played++;
+      if (res.potm === p.name) potm++;
+      if (res.coachesPotm === p.name) coachesPotm++;
+      if (hasBeenGK && res.goalkeeper === p.name && res.opponent === 0) cleanSheets++;
+      (goalScorers[f.id] || []).forEach(s => { if (s.player === p.name) goals += s.goals; });
+    });
+    rows.push([p.name, played, goals, hasBeenGK ? cleanSheets : '', potm, coachesPotm].join(','));
+  });
+
+  // ── Squad section ────────────────────────────────────────────────────
+  rows.push('');
+  rows.push('SQUAD');
+  rows.push('Name');
+  squad.forEach(p => rows.push(p.name));
+
+  const csv = rows.join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = teamName + '_season_' + date + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('CSV downloaded!');
+}
 async function exportSeasonData() {
   showToast('Preparing export…');
   try {
@@ -1672,6 +1788,8 @@ async function deleteSquadPlayer(id) {
 function loadMatchForResult() {
   const matchId = parseInt(document.getElementById('matchSelect').value);
   const form = document.getElementById('resultForm');
+  const shareBtn = document.getElementById('adminShareBtn');
+  if (shareBtn) shareBtn.style.display = 'none';
 
   if (!matchId) { form.style.display = 'none'; return; }
 
@@ -1687,23 +1805,42 @@ function loadMatchForResult() {
   const scorers = goalScorers[matchId] || [];
   const list = document.getElementById('goalScorersList');
   list.innerHTML = '';
-
-  scorers.forEach(s => {
-    list.innerHTML += '<div class="goal-inputs">' +
-      '<select><option selected>' + s.player + '</option>' + PLAYERS.map(p => '<option>' + p + '</option>').join('') + '</select>' +
-      '<input type="number" value="' + s.goals + '" min="0">' +
-      '<button class="btn" style="padding:6px 12px;" onclick="this.parentElement.remove()">Remove</button>' +
-      '</div>';
-  });
+  scorers.forEach(s => addGoalScorerInput(s.player, s.goals));
 }
 
-function addGoalScorerInput() {
+function addGoalScorerInput(playerName, goals) {
   const list = document.getElementById('goalScorersList');
-  list.innerHTML += '<div class="goal-inputs">' +
-    '<select><option value="">-- Select player --</option>' + PLAYERS.map(p => '<option>' + p + '</option>').join('') + '</select>' +
-    '<input type="number" value="1" min="0">' +
-    '<button class="btn" style="padding:6px 12px;" onclick="this.parentElement.remove()">Remove</button>' +
-    '</div>';
+  const div = document.createElement('div');
+  div.className = 'goal-inputs';
+
+  const select = document.createElement('select');
+  const blank = document.createElement('option');
+  blank.value = '';
+  blank.textContent = '-- Select player --';
+  select.appendChild(blank);
+  PLAYERS.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p;
+    opt.textContent = p;
+    if (p === playerName) opt.selected = true;
+    select.appendChild(opt);
+  });
+
+  const input = document.createElement('input');
+  input.type = 'number';
+  input.value = goals || 1;
+  input.min = 0;
+
+  const removeBtn = document.createElement('button');
+  removeBtn.className = 'btn';
+  removeBtn.style.padding = '6px 12px';
+  removeBtn.textContent = 'Remove';
+  removeBtn.onclick = function() { div.remove(); };
+
+  div.appendChild(select);
+  div.appendChild(input);
+  div.appendChild(removeBtn);
+  list.appendChild(div);
 }
 
 async function addFixture() {
@@ -1802,6 +1939,8 @@ async function saveResult() {
     renderPlayerStats();
     document.getElementById('resultForm').style.display = 'none';
     document.getElementById('matchSelect').value = '';
+    const shareBtn = document.getElementById('adminShareBtn');
+    if (shareBtn) { shareBtn.style.display = 'inline-block'; shareBtn.dataset.fixtureId = matchId; }
     showToast('Result saved!');
   } catch(e) {
     showToast('Error: ' + e.message, true);
