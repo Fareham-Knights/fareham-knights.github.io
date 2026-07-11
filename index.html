@@ -647,7 +647,10 @@ async function renderAdminContent(email) {
           <label>Comments (optional)</label>
           <textarea id="editFixtureComments" rows="3" placeholder="e.g., Parking is £2 at the clubhouse, pitch is the astro behind the school" style="width:100%;padding:8px 12px;border:1.5px solid var(--grey-200);border-radius:6px;font-size:14px;font-family:'Inter',sans-serif;outline:none;resize:vertical;"></textarea>
         </div>
-        <button class="btn" onclick="saveFixtureEdit()">Save Changes</button>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px;">
+          <button class="btn" onclick="saveFixtureEdit()">Save Changes</button>
+          <button class="btn" style="background:var(--red);" onclick="deleteFixture()">Delete Fixture</button>
+        </div>
       </div>
     </div>
 
@@ -1721,6 +1724,29 @@ function loadFixtureForEdit() {
   document.getElementById('editFixtureHomeAway').value = f.home_away;
   document.getElementById('editFixtureLocation').value = f.location || '';
   document.getElementById('editFixtureComments').value = f.comments || '';
+}
+
+async function deleteFixture() {
+  const fixtureId = parseInt(document.getElementById('editFixtureSelect').value);
+  if (!fixtureId) return;
+  if (!confirm('Delete this fixture? This cannot be undone.')) return;
+  try {
+    await sbFetch('knights_availability?fixture_id=eq.' + fixtureId, { method: 'DELETE' });
+    await sbFetch('knights_goal_scorers?fixture_id=eq.' + fixtureId, { method: 'DELETE' });
+    await sbFetch('knights_match_results?fixture_id=eq.' + fixtureId, { method: 'DELETE' });
+    await sbFetch('knights_fixtures?id=eq.' + fixtureId, { method: 'DELETE' });
+    await loadFixtures();
+    renderFixtures();
+    renderResults();
+    renderPlayerStats();
+    populateMatchSelect();
+    populateEditFixtureSelect();
+    document.getElementById('editFixtureForm').style.display = 'none';
+    document.getElementById('editFixtureSelect').value = '';
+    showToast('Fixture deleted');
+  } catch(e) {
+    showToast('Error: ' + e.message, true);
+  }
 }
 
 async function saveFixtureEdit() {
