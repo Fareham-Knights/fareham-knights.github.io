@@ -175,9 +175,12 @@
   }
   .next-match-times {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: 34px;
+    font-size: 26px;
     color: var(--gold);
     line-height: 1;
+    border-top: 1px solid rgba(255,255,255,0.12);
+    padding-top: 14px;
+    margin-top: 4px;
   }
   .match-scorers {
     font-size: 11px;
@@ -1194,12 +1197,12 @@ function renderFixtures() {
       timesDisplay = 'KO ' + koTimeStr;
     }
     const locationLine = nextMatch.location
-      ? '<div class="next-match-detail"><a href="' + mapLink(nextMatch.location) + '" target="_blank" rel="noopener" style="color:var(--gold);">📍 ' + nextMatch.location + '</a></div>'
-      : '';
+      ? '<div class="next-match-detail"><a href="' + mapLink(nextMatch.location) + '" target="_blank" rel="noopener" style="color:var(--gold);text-decoration:none;">' + nextMatch.location + ' · ' + nextMatch.home_away + '</a></div>'
+      : '<div class="next-match-detail" style="color:rgba(255,255,255,0.7);">' + nextMatch.home_away + '</div>';
     html += '<div class="next-match-card">' +
       '<div class="next-match-label">NEXT MATCH</div>' +
       '<div class="next-match-teams">Knights vs ' + nextMatch.opponent + '</div>' +
-      '<div class="next-match-detail" style="font-size:16px;color:rgba(255,255,255,0.85);">' + formatDate(nextMatch.date) + ' · ' + nextMatch.home_away + '</div>' +
+      '<div class="next-match-detail" style="font-size:16px;color:rgba(255,255,255,0.85);">' + formatDate(nextMatch.date) + '</div>' +
       locationLine +
       buildNotesLine(nextMatch.comments) +
       '<div class="next-match-times">' + timesDisplay + '</div>' +
