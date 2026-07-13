@@ -583,7 +583,14 @@ async function renderAdminContent(email) {
       </div>
       <div class="form-group">
         <label>Meet Time (optional)</label>
-        <input type="time" id="fixtureMeetTime">
+        <input type="time" id="fixtureMeetTime" onchange="
+          const mt = this.value;
+          if (!mt) return;
+          const [h, m] = mt.split(':').map(Number);
+          const ko = new Date(0, 0, 0, h, m + 30);
+          document.getElementById('fixtureTime').value =
+            String(ko.getHours()).padStart(2,'0') + ':' + String(ko.getMinutes()).padStart(2,'0');
+        ">
       </div>
       <div class="form-group">
         <label>Kick-off Time</label>
