@@ -1,4 +1,14 @@
 <!DOCTYPE html>
+<!--
+  Fareham Knights Match Tracker
+  Developed by Ant James, 2025-2026
+  Built with Claude (Anthropic) — claude.ai
+
+  This application and its source code were created as an original work.
+  Unauthorised copying, redistribution, or commercial use without
+  permission is not permitted. If you'd like to build something similar
+  for your own club, a guide is available — contact the developer directly.
+-->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -450,6 +460,7 @@ let goalScorers = {};
 let squad = [];
 let availability = {};
 let teamConfig = {};
+let snapshots = {};
 
 // Player Stats column sort state. Defaults match the previous fixed sort
 // (highest goals first).
@@ -482,6 +493,7 @@ async function loadAndRender() {
   await loadResults();
   await loadSquad();
   await loadAvailability();
+  await loadSnapshots();
   renderFixtures();
   renderResults();
   renderPlayerStats();
@@ -618,6 +630,9 @@ async function renderAdminContent(email) {
         <h3 style="margin-top:20px;margin-bottom:8px;">Squad Attendance</h3>
         <p style="font-size:12px;color:var(--grey-600);margin-bottom:10px;">All players default to attending. Tap anyone who did not play.</p>
         <div id="adminAttendancePanel"></div>
+        <h3 style="margin-top:20px;margin-bottom:8px;">Match Story</h3>
+        <p style="font-size:12px;color:var(--grey-600);margin-bottom:8px;">Auto-generated when you publish — edit to make it your own.</p>
+        <textarea id="narrativeInput" rows="2" placeholder="e.g. Brilliant comeback from 2-0 down — what a result!" style="width:100%;padding:8px 12px;border:1.5px solid var(--grey-200);border-radius:6px;font-size:13px;font-family:'Inter',sans-serif;outline:none;resize:vertical;"></textarea>
         <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;">
           <button class="btn" onclick="saveResult(false)">Save Draft</button>
           <button class="btn btn-gold" onclick="saveResult(true)">Publish Result</button>
@@ -797,7 +812,7 @@ async function loadResults() {
   const data = await sbFetch('knights_match_results?select=*');
   results = {};
   data.forEach(r => {
-    results[r.fixture_id] = { knights: r.knights_goals, opponent: r.opponent_goals, potm: r.player_of_match, coachesPotm: r.coaches_player_of_match, goalkeeper: r.goalkeeper, published: r.published };
+    results[r.fixture_id] = { knights: r.knights_goals, opponent: r.opponent_goals, potm: r.player_of_match, coachesPotm: r.coaches_player_of_match, goalkeeper: r.goalkeeper, published: r.published, narrative: r.narrative || null };
   });
 
   const goalData = await sbFetch('knights_goal_scorers?select=*');
@@ -876,6 +891,19 @@ function applyConfig() {
   document.documentElement.style.setProperty('--gold-dark', darkenHex(accent, 20));
 }
 
+async function loadSnapshots() {
+  try {
+    const data = await sbFetch('knights_score_snapshots?select=*&order=recorded_at');
+    snapshots = {};
+    data.forEach(s => {
+      if (!snapshots[s.fixture_id]) snapshots[s.fixture_id] = [];
+      snapshots[s.fixture_id].push({ k: s.knights_goals, o: s.opponent_goals, at: s.recorded_at });
+    });
+  } catch(e) {
+    snapshots = {};
+  }
+}
+
 async function loadAvailability() {
   const data = await sbFetch('knights_availability?select=*');
   availability = {};
@@ -883,6 +911,65 @@ async function loadAvailability() {
     if (!availability[a.fixture_id]) availability[a.fixture_id] = {};
     availability[a.fixture_id][a.player_id] = a.status;
   });
+}
+
+function generateNarrative(fixtureId) {
+  const res = results[fixtureId];
+  if (!res || !res.published) return '';
+  if (res.narrative) return res.narrative;
+
+  const snaps = (snapshots[fixtureId] || []).sort((a, b) => new Date(a.at) - new Date(b.at));
+  const won  = res.knights > res.opponent;
+  const drew = res.knights === res.opponent;
+
+  if (snaps.length === 0) {
+    if (won)  return 'Good win for the team.';
+    if (drew) return 'A hard-fought point.';
+    return 'Tough result — heads held high.';
+  }
+
+  let everBehind = false, everAhead = false, everLevelAfterMove = false;
+  let worstSnap = null, bestLead = 0;
+
+  snaps.forEach(s => {
+    const diff = s.k - s.o;
+    if (diff < 0) {
+      everBehind = true;
+      if (!worstSnap || diff < worstSnap.k - worstSnap.o) worstSnap = s;
+    }
+    if (diff > 0) {
+      everAhead = true;
+      if (diff > bestLead) bestLead = diff;
+    }
+    if (diff === 0 && (everBehind || everAhead)) everLevelAfterMove = true;
+  });
+
+  const deficitScore = worstSnap ? worstSnap.k + '-' + worstSnap.o : '';
+
+  if (won) {
+    if (everBehind && worstSnap && (worstSnap.o - worstSnap.k) >= 2)
+      return 'Brilliant comeback from ' + deficitScore + ' down — what a result!';
+    if (everBehind)
+      return 'Great character shown to win after falling behind.';
+    if (everLevelAfterMove)
+      return 'Solid win after being pegged back.';
+    return 'Dominant display — never headed.';
+  }
+
+  if (drew) {
+    if (everAhead) return 'Unlucky — a late equaliser denied the win.';
+    if (everBehind) return 'Great resilience to earn a point after going behind.';
+    return 'Hard-fought point in an even contest.';
+  }
+
+  // Lost
+  if (everAhead && bestLead >= 2)
+    return 'Heartbreaking loss after leading by ' + bestLead + ' — difficult to take.';
+  if (everAhead)
+    return 'Unfortunate loss after taking the lead.';
+  if (everBehind && !everAhead)
+    return 'Tough afternoon — back at it next time.';
+  return 'Difficult day — heads up for the next one.';
 }
 
 // ── Tabs ────────────────────────────────────────────────────────────────
@@ -1039,6 +1126,11 @@ function buildMatchCard(f) {
     potmLine += '<div class="match-potm" style="grid-column: 1 / -1;">🏅 Coaches\' POTM: ' + res.coachesPotm + '</div>';
   }
 
+  // Narrative — auto-generated or coach-written match story
+  const narrativeLine = isPlayed && generateNarrative(f.id)
+    ? '<div style="grid-column:1/-1;font-size:12px;color:var(--grey-500);text-align:center;margin-top:2px;font-style:italic;">' + generateNarrative(f.id) + '</div>'
+    : '';
+
   // Times line for unplayed fixtures
   let timesLine = '';
   if (!isPlayed) {
@@ -1073,6 +1165,7 @@ function buildMatchCard(f) {
     (!isPlayed ? buildNotesLine(f.comments, true) : '') +
     scorersLine +
     potmLine +
+    narrativeLine +
     availabilitySection +
     shareText +
     '</div>';
@@ -1292,6 +1385,50 @@ function renderResults() {
     (formHtml ? '<div style="margin-top:20px;"><div style="font-size:12px;font-weight:600;color:var(--grey-600);margin-bottom:6px;">FORM (LAST ' + recentForm.length + ')</div><div class="form-string">' + formHtml.trim() + '</div></div>' : '') +
     '</div>';
 
+  // Season story — only show once we have snapshot data across multiple matches
+  const fixturesWithSnaps = playedFixtures.filter(f => snapshots[f.id] && snapshots[f.id].length > 0);
+  if (fixturesWithSnaps.length > 0) {
+    let winsFromBehind = 0, winsNeverBehind = 0;
+    let lossesAfterLeading = 0, lossesNeverAhead = 0;
+    let drawsAfterLeading = 0, drawsAfterTrailing = 0;
+
+    playedFixtures.forEach(f => {
+      const res = results[f.id];
+      const snaps = (snapshots[f.id] || []).sort((a, b) => new Date(a.at) - new Date(b.at));
+      const won  = res.knights > res.opponent;
+      const drew = res.knights === res.opponent;
+      const lost = res.knights < res.opponent;
+      let everBehind = false, everAhead = false;
+      snaps.forEach(s => {
+        const diff = s.k - s.o;
+        if (diff < 0) everBehind = true;
+        if (diff > 0) everAhead = true;
+      });
+      if (won  && everBehind)  winsFromBehind++;
+      if (won  && !everBehind) winsNeverBehind++;
+      if (lost && everAhead)   lossesAfterLeading++;
+      if (lost && !everAhead)  lossesNeverAhead++;
+      if (drew && everAhead)   drawsAfterLeading++;
+      if (drew && everBehind && !everAhead) drawsAfterTrailing++;
+    });
+
+    let storyLines = [];
+    if (winsFromBehind > 0)      storyLines.push(winsFromBehind + ' win' + (winsFromBehind > 1 ? 's' : '') + ' from behind');
+    if (winsNeverBehind > 0)     storyLines.push(winsNeverBehind + ' win' + (winsNeverBehind > 1 ? 's' : '') + ' never headed');
+    if (lossesAfterLeading > 0)  storyLines.push(lossesAfterLeading + ' loss' + (lossesAfterLeading > 1 ? 'es' : '') + ' after leading');
+    if (lossesNeverAhead > 0)    storyLines.push(lossesNeverAhead + ' loss' + (lossesNeverAhead > 1 ? 'es' : '') + ' never ahead');
+    if (drawsAfterLeading > 0)   storyLines.push(drawsAfterLeading + ' draw' + (drawsAfterLeading > 1 ? 's' : '') + ' after leading');
+    if (drawsAfterTrailing > 0)  storyLines.push(drawsAfterTrailing + ' draw' + (drawsAfterTrailing > 1 ? 's' : '') + ' from behind');
+
+    if (storyLines.length > 0) {
+      html += '<div class="section" style="background:var(--grey-50);border-left:4px solid var(--gold-dark);">' +
+        '<h3 style="margin-bottom:10px;">Season Story</h3>' +
+        '<div style="display:flex;flex-wrap:wrap;gap:8px;">' +
+        storyLines.map(l => '<span style="background:var(--white);border:1px solid var(--grey-200);border-radius:20px;padding:5px 12px;font-size:12px;font-weight:600;color:var(--grey-700);">' + l + '</span>').join('') +
+        '</div></div>';
+    }
+  }
+
   // Match-by-match results, most recent first
   const recentFirst = [...playedFixtures].reverse();
   recentFirst.forEach(f => { html += buildMatchCard(f); });
@@ -1486,6 +1623,37 @@ function exportSeasonCSV() {
   rows.push('SQUAD');
   rows.push('Name');
   squad.forEach(p => rows.push(p.name));
+
+  // Season Story section
+  const publishedFixtures = fixtures.filter(f => results[f.id] && results[f.id].published === true);
+  const fixturesWithSnaps = publishedFixtures.filter(f => snapshots[f.id] && snapshots[f.id].length > 0);
+  if (fixturesWithSnaps.length > 0) {
+    let winsFromBehind = 0, winsNeverBehind = 0;
+    let lossesAfterLeading = 0, lossesNeverAhead = 0;
+    let drawsAfterLeading = 0, drawsAfterTrailing = 0;
+    publishedFixtures.forEach(f => {
+      const res = results[f.id];
+      const snaps = (snapshots[f.id] || []).sort((a, b) => new Date(a.at) - new Date(b.at));
+      let everBehind = false, everAhead = false;
+      snaps.forEach(s => { if (s.k - s.o < 0) everBehind = true; if (s.k - s.o > 0) everAhead = true; });
+      const won = res.knights > res.opponent, drew = res.knights === res.opponent, lost = res.knights < res.opponent;
+      if (won  && everBehind)  winsFromBehind++;
+      if (won  && !everBehind) winsNeverBehind++;
+      if (lost && everAhead)   lossesAfterLeading++;
+      if (lost && !everAhead)  lossesNeverAhead++;
+      if (drew && everAhead)   drawsAfterLeading++;
+      if (drew && everBehind && !everAhead) drawsAfterTrailing++;
+    });
+    rows.push('');
+    rows.push('SEASON STORY');
+    rows.push('Stat,Count');
+    rows.push('Wins from behind,' + winsFromBehind);
+    rows.push('Wins never headed,' + winsNeverBehind);
+    rows.push('Losses after leading,' + lossesAfterLeading);
+    rows.push('Losses never ahead,' + lossesNeverAhead);
+    rows.push('Draws after leading,' + drawsAfterLeading);
+    rows.push('Draws from behind,' + drawsAfterTrailing);
+  }
 
   const csv = rows.join('\n');
   const blob = new Blob([csv], { type: 'text/csv' });
@@ -1936,6 +2104,12 @@ function loadMatchForResult() {
     form.prepend(label);
   }
 
+  // Pre-populate narrative textarea with stored value or auto-generate from snapshots
+  const narrativeInput = document.getElementById('narrativeInput');
+  if (narrativeInput) {
+    narrativeInput.value = res.narrative || generateNarrative(matchId) || '';
+  }
+
   const scorers = goalScorers[matchId] || [];
   const list = document.getElementById('goalScorersList');
   list.innerHTML = '';
@@ -2038,6 +2212,8 @@ async function saveResult(published = false) {
   const potm = document.getElementById('potmSelect').value || null;
   const coachesPotm = document.getElementById('coachesPotmSelect').value || null;
   const goalkeeper = document.getElementById('goalkeeperSelect').value || null;
+  const narrativeInput = document.getElementById('narrativeInput');
+  const narrative = narrativeInput && narrativeInput.value.trim() ? narrativeInput.value.trim() : null;
 
   const scorerInputs = document.querySelectorAll('#goalScorersList .goal-inputs');
   const scorers = [];
@@ -2056,7 +2232,7 @@ async function saveResult(published = false) {
     // Insert new result
     await sbFetch('knights_match_results', {
       method: 'POST',
-      body: JSON.stringify([{ fixture_id: matchId, knights_goals: knightsGoals, opponent_goals: opponentGoals, player_of_match: potm, coaches_player_of_match: coachesPotm, goalkeeper, published }])
+      body: JSON.stringify([{ fixture_id: matchId, knights_goals: knightsGoals, opponent_goals: opponentGoals, player_of_match: potm, coaches_player_of_match: coachesPotm, goalkeeper, published, narrative }])
     });
 
     // Insert goal scorers
@@ -2067,7 +2243,16 @@ async function saveResult(published = false) {
       });
     }
 
+    // Record a score snapshot on every draft save so we can build a narrative
+    if (!published) {
+      await sbFetch('knights_score_snapshots', {
+        method: 'POST',
+        body: JSON.stringify([{ fixture_id: matchId, knights_goals: knightsGoals, opponent_goals: opponentGoals }])
+      });
+    }
+
     await loadResults();
+    await loadSnapshots();
     renderFixtures();
     renderResults();
     renderPlayerStats();
