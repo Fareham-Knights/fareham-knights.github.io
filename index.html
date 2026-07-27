@@ -365,10 +365,6 @@
     <div id="statsContent"><div class="loading-overlay">Loading player stats…</div></div>
   </div>
 
-  <div id="tab-squad" class="tab-content">
-    <div class="section"><h3>Squad</h3><div id="squadContent"><div class="loading-overlay">Loading squad…</div></div></div>
-  </div>
-
   <div id="tab-admin" class="tab-content">
     <div id="adminLock" class="section" style="text-align:center;max-width:280px;margin:0 auto;">
       <h3 style="margin-bottom:6px;">Admin</h3>
@@ -413,10 +409,6 @@
   <button class="nav-item" onclick="switchTab('stats')" id="nav-stats">
     <span class="nav-icon">🏅</span>
     <span class="nav-label">Stats</span>
-  </button>
-  <button class="nav-item" onclick="switchTab('squad')" id="nav-squad">
-    <span class="nav-icon">⚽</span>
-    <span class="nav-label">Squad</span>
   </button>
 </nav>
 
@@ -497,7 +489,6 @@ async function loadAndRender() {
   renderFixtures();
   renderResults();
   renderPlayerStats();
-  renderSquad();
   populateMatchSelect();
   populateEditFixtureSelect();
 }
@@ -737,8 +728,9 @@ async function renderAdminContent(email) {
         <div class="section">
       <button onclick="toggleSquadAdmin()" style="background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:8px;padding:0;width:100%;text-align:left;">
         <h3 style="margin:0;font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px;color:var(--crimson);">Squad</h3>
-        <span id="squadAdminArrow" style="font-size:11px;color:var(--grey-400);margin-left:auto;">▼ expand</span>
+        <span id="squadAdminArrow" style="font-size:11px;color:var(--grey-400);margin-left:auto;">▼ manage</span>
       </button>
+      <div id="squadQuickList" style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px;">${squad.filter(p => p.active !== false).map(p => '<span style="background:var(--grey-50);border:1px solid var(--grey-200);border-radius:16px;padding:3px 10px;font-size:12px;font-weight:600;color:var(--grey-700);">' + p.name + '</span>').join('')}</div>
       <div id="squadAdminBody" style="display:none; margin-top:16px;">
         <div id="squadAdminList"><div class="loading-overlay">Loading squad…</div></div>
         <div class="form-group" style="margin-top:16px;">
@@ -975,7 +967,7 @@ function generateNarrative(fixtureId) {
 // ── Tabs ────────────────────────────────────────────────────────────────
 function switchTab(name) {
   // Update bottom nav active state (admin has no nav item so all go grey)
-  ['fixtures','results','stats','squad'].forEach(id => {
+  ['fixtures','results','stats'].forEach(id => {
     const el = document.getElementById('nav-' + id);
     if (el) el.classList.toggle('active', id === name);
   });
