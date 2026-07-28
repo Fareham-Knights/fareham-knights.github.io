@@ -908,60 +908,33 @@ async function loadAvailability() {
 function generateNarrative(fixtureId) {
   const res = results[fixtureId];
   if (!res || !res.published) return '';
+
+  // Coach-written override always takes priority
   if (res.narrative) return res.narrative;
 
-  const snaps = (snapshots[fixtureId] || []).sort((a, b) => new Date(a.at) - new Date(b.at));
+  // No snapshots means no story to draw from
+  const snaps = (snapshots[fixtureId] || []);
+  if (snaps.length === 0) return '';
+
+  const sorted = [...snaps].sort((a, b) => new Date(a.at) - new Date(b.at));
   const won  = res.knights > res.opponent;
   const drew = res.knights === res.opponent;
+  const lost = res.knights < res.opponent;
 
-  if (snaps.length === 0) {
-    if (won)  return 'Good win for the team.';
-    if (drew) return 'A hard-fought point.';
-    return 'Tough result — heads held high.';
-  }
-
-  let everBehind = false, everAhead = false, everLevelAfterMove = false;
-  let worstSnap = null, bestLead = 0;
-
-  snaps.forEach(s => {
+  let everBehind = false, everAhead = false;
+  sorted.forEach(s => {
     const diff = s.k - s.o;
-    if (diff < 0) {
-      everBehind = true;
-      if (!worstSnap || diff < worstSnap.k - worstSnap.o) worstSnap = s;
-    }
-    if (diff > 0) {
-      everAhead = true;
-      if (diff > bestLead) bestLead = diff;
-    }
-    if (diff === 0 && (everBehind || everAhead)) everLevelAfterMove = true;
+    if (diff < 0) everBehind = true;
+    if (diff > 0) everAhead = true;
   });
 
-  const deficitScore = worstSnap ? worstSnap.k + '-' + worstSnap.o : '';
+  if (won  && everBehind) return 'Won from behind';
+  if (lost && everAhead)  return 'Lost after leading';
+  if (drew && everBehind) return 'Drew after coming from behind';
+  if (drew && everAhead)  return 'Drew after leading';
 
-  if (won) {
-    if (everBehind && worstSnap && (worstSnap.o - worstSnap.k) >= 2)
-      return 'Brilliant comeback from ' + deficitScore + ' down — what a result!';
-    if (everBehind)
-      return 'Great character shown to win after falling behind.';
-    if (everLevelAfterMove)
-      return 'Solid win after being pegged back.';
-    return 'Dominant display — never headed.';
-  }
-
-  if (drew) {
-    if (everAhead) return 'Unlucky — a late equaliser denied the win.';
-    if (everBehind) return 'Great resilience to earn a point after going behind.';
-    return 'Hard-fought point in an even contest.';
-  }
-
-  // Lost
-  if (everAhead && bestLead >= 2)
-    return 'Heartbreaking loss after leading by ' + bestLead + ' — difficult to take.';
-  if (everAhead)
-    return 'Unfortunate loss after taking the lead.';
-  if (everBehind && !everAhead)
-    return 'Tough afternoon — back at it next time.';
-  return 'Difficult day — heads up for the next one.';
+  // Routine result — show nothing
+  return '';
 }
 
 // ── Tabs ────────────────────────────────────────────────────────────────
@@ -2270,7 +2243,33 @@ async function refreshData() {
   }
 }
 
-// ── Share app ────────────────────────────────────────────────────────────
+// Returns a short story label only when snapshots reveal something genuinely
+// interesting. Routine wins or losses with no twist show nothing.
+function matchStoryTag(fixtureId) {
+  const res = results[fixtureId];
+  if (!res || !res.published) return null;
+
+  const snaps = (snapshots[fixtureId] || []).sort((a, b) => new Date(a.at) - new Date(b.at));
+  if (snaps.length === 0) return null;
+
+  let everBehind = false, everAhead = false;
+  snaps.forEach(s => {
+    const diff = s.k - s.o;
+    if (diff < 0) everBehind = true;
+    if (diff > 0) everAhead = true;
+  });
+
+  const won  = res.knights > res.opponent;
+  const drew = res.knights === res.opponent;
+  const lost = res.knights < res.opponent;
+
+  if (won  && everBehind)  return 'Won from behind';
+  if (lost && everAhead)   return 'Lost after leading';
+  if (drew && everBehind && !everAhead) return 'Drew after coming from behind';
+  return null;
+}
+
+
 function shareApp() {
   const url = window.location.href.split('?')[0];
   const modal = document.getElementById('shareModal');
