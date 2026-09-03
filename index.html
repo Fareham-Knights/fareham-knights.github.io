@@ -1708,7 +1708,7 @@ async function exportSeasonData() {
     const goalsById = {};
     rawGoalScorers.forEach(g => {
       if (!goalsById[g.fixture_id]) goalsById[g.fixture_id] = [];
-      goalsById[g.fixture_id].push({ player: g.player, goals: g.goals });
+      goalsById[g.fixture_id].push({ player: g.player_name, goals: g.goals });
     });
 
     // Build an availability lookup
