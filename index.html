@@ -579,7 +579,7 @@ async function renderAdminContent(email) {
   const now = new Date();
   const liveF = fixtures.find(f => {
     const res = results[f.id];
-    return res && res.published === false && new Date(f.kickoff_time) <= new Date(now.getTime() + 15 * 60 * 1000);
+    return res && res.published === false && new Date(f.kickoff_time) <= new Date(now.getTime() + 5 * 60 * 1000);
   });
   const liveRes = liveF ? results[liveF.id] : null;
 
@@ -659,6 +659,7 @@ async function renderAdminContent(email) {
           <label>Opponent Goals</label>
           <input type="number" id="opponentGoals" min="0" placeholder="0">
         </div>
+        <button class="btn" style="width:100%;margin-bottom:20px;background:var(--crimson);border:none;letter-spacing:1px;font-family:'Bebas Neue',sans-serif;font-size:16px;" onclick="saveResult(false)">🔴 Go Live — Save Draft</button>
         <div class="form-group">
           <label>Goalkeeper (for clean sheet tracking)</label>
           <select id="goalkeeperSelect">
@@ -1293,7 +1294,7 @@ function renderFixtures() {
   fixtures.forEach(f => {
     const res = results[f.id];
     const kickoff = new Date(f.kickoff_time);
-    if (res && res.published === false && kickoff <= new Date(now.getTime() + 15 * 60 * 1000)) {
+    if (res && res.published === false && kickoff <= new Date(now.getTime() + 5 * 60 * 1000)) {
       if (!liveMatch || kickoff > new Date(liveMatch.kickoff_time)) liveMatch = f;
     }
   });
