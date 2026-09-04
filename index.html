@@ -453,6 +453,7 @@ let squad = [];
 let availability = {};
 let teamConfig = {};
 let snapshots = {};
+let lastGoalMinute = 1; // tracks the last entered goal minute for smart defaulting
 
 // Player Stats column sort state. Defaults match the previous fixed sort
 // (highest goals first).
@@ -606,6 +607,10 @@ async function renderAdminContent(email) {
           <option value="">Goal scorer...</option>
           <option value="Own Goal">⚽ Own Goal</option>
           ${PLAYERS.map(p => '<option value="' + p + '">' + p + '</option>').join('')}
+        </select>
+        <select id="quickMinuteSelect" style="width:64px;padding:8px;border-radius:6px;border:none;font-size:13px;font-family:Inter,sans-serif;">
+          <option value="">Min</option>
+          ${Array.from({length:50},(_,i)=>i+1).map(n=>'<option value="'+n+'"'+( n===Math.min(lastGoalMinute+2,50)?' selected':'')+'>'+n+'\'</option>').join('')}
         </select>
         <button onclick="quickAddGoal(${liveF.id})" style="padding:8px 14px;border-radius:6px;border:none;background:var(--gold);color:var(--ink);font-weight:700;font-size:13px;cursor:pointer;font-family:Inter,sans-serif;white-space:nowrap;">+ Goal</button>
       </div>
@@ -867,7 +872,7 @@ async function loadResults() {
   goalScorers = {};
   goalData.forEach(g => {
     if (!goalScorers[g.fixture_id]) goalScorers[g.fixture_id] = [];
-    goalScorers[g.fixture_id].push({ player: g.player_name, goals: g.goals });
+    goalScorers[g.fixture_id].push({ player: g.player_name, goals: g.goals, minute: g.minute || null });
   });
 }
 
@@ -1139,7 +1144,10 @@ function buildMatchCard(f) {
   // Goal scorers line for played matches
   let scorersLine = '';
   if (isPlayed && goalScorers[f.id] && goalScorers[f.id].length > 0) {
-    const scorersText = goalScorers[f.id].map(s => s.player + ' ' + s.goals).join(', ');
+    const scorersText = goalScorers[f.id].map(s =>
+      s.player + (s.goals > 1 ? ' ' + s.goals : '') +
+      (s.minute ? ' <span style="color:var(--grey-400);font-size:10px;">' + s.minute + '\'</span>' : '')
+    ).join('  ·  ');
     scorersLine = '<div class="match-scorers" style="grid-column: 1 / -1;">⚽ ' + scorersText + '</div>';
   }
 
@@ -1613,7 +1621,7 @@ function exportSeasonCSV() {
   fixtures.filter(f => results[f.id]).forEach(f => {
     const res = results[f.id];
     const outcome = res.knights > res.opponent ? 'W' : res.knights === res.opponent ? 'D' : 'L';
-    const scorerStr = (goalScorers[f.id] || []).map(s => s.player + ' ' + s.goals).join('; ');
+    const scorerStr = (goalScorers[f.id] || []).map(s => s.player + ' ' + s.goals + (s.minute ? ' (' + s.minute + '\')' : '')).join('; ');
     rows.push([
       f.date, '"' + f.opponent + '"', f.home_away,
       res.knights, res.opponent, outcome,
@@ -2140,10 +2148,10 @@ function loadMatchForResult() {
   const scorers = goalScorers[matchId] || [];
   const list = document.getElementById('goalScorersList');
   list.innerHTML = '';
-  scorers.forEach(s => addGoalScorerInput(s.player, s.goals));
+  scorers.forEach(s => addGoalScorerInput(s.player, s.goals, s.minute));
 }
 
-function addGoalScorerInput(playerName, goals) {
+function addGoalScorerInput(playerName, goals, minute) {
   const list = document.getElementById('goalScorersList');
   const div = document.createElement('div');
   div.className = 'goal-inputs';
@@ -2154,7 +2162,6 @@ function addGoalScorerInput(playerName, goals) {
   blank.textContent = '-- Select player --';
   select.appendChild(blank);
 
-  // Own goal as the first selectable option
   const ogOpt = document.createElement('option');
   ogOpt.value = 'Own Goal';
   ogOpt.textContent = '⚽ Own Goal';
@@ -2173,15 +2180,37 @@ function addGoalScorerInput(playerName, goals) {
   input.type = 'number';
   input.value = goals || 1;
   input.min = 0;
+  input.style.width = '50px';
+
+  // Minute dropdown — defaults to lastGoalMinute+2 if not pre-populated
+  const defaultMinute = minute || Math.min(lastGoalMinute + 2, 50);
+  const minuteSel = document.createElement('select');
+  minuteSel.style.width = '62px';
+  minuteSel.title = 'Approximate minute (optional)';
+  const blankMin = document.createElement('option');
+  blankMin.value = '';
+  blankMin.textContent = 'Min';
+  minuteSel.appendChild(blankMin);
+  for (let m = 1; m <= 50; m++) {
+    const opt = document.createElement('option');
+    opt.value = m;
+    opt.textContent = m + '\'';
+    if (m === defaultMinute) opt.selected = true;
+    minuteSel.appendChild(opt);
+  }
+  minuteSel.addEventListener('change', () => {
+    if (minuteSel.value) lastGoalMinute = parseInt(minuteSel.value);
+  });
 
   const removeBtn = document.createElement('button');
   removeBtn.className = 'btn';
-  removeBtn.style.padding = '6px 12px';
-  removeBtn.textContent = 'Remove';
+  removeBtn.style.padding = '6px 10px';
+  removeBtn.textContent = '✕';
   removeBtn.onclick = function() { div.remove(); };
 
   div.appendChild(select);
   div.appendChild(input);
+  div.appendChild(minuteSel);
   div.appendChild(removeBtn);
   list.appendChild(div);
 }
@@ -2253,10 +2282,11 @@ async function saveResult(published = false) {
   const scorerInputs = document.querySelectorAll('#goalScorersList .goal-inputs');
   const scorers = [];
   scorerInputs.forEach(inp => {
-    const select = inp.querySelector('select');
-    const player = select.value;
+    const selects = inp.querySelectorAll('select');
+    const player = selects[0].value;
     const goals = parseInt(inp.querySelector('input').value) || 0;
-    if (player && goals > 0) scorers.push({ fixture_id: matchId, player_name: player, goals });
+    const minute = selects[1] && selects[1].value ? parseInt(selects[1].value) : null;
+    if (player && goals > 0) scorers.push({ fixture_id: matchId, player_name: player, goals, minute });
   });
 
   try {
@@ -2365,16 +2395,19 @@ async function quickScore(fixtureId, kDelta, oDelta) {
 
 async function quickAddGoal(fixtureId) {
   const select = document.getElementById('quickScorerSelect');
+  const minuteSel = document.getElementById('quickMinuteSelect');
   const player = select ? select.value : '';
+  const minute = minuteSel && minuteSel.value ? parseInt(minuteSel.value) : null;
   if (!player) { showToast('Select a scorer first', true); return; }
+  if (minute) lastGoalMinute = minute;
   const res = results[fixtureId];
   if (!res) return;
   const newK = res.knights + 1;
   const existing = goalScorers[fixtureId] || [];
   const existingPlayer = existing.find(s => s.player === player);
   const updatedScorers = existingPlayer
-    ? existing.map(s => s.player === player ? { ...s, goals: s.goals + 1 } : s)
-    : [...existing, { player, goals: 1 }];
+    ? existing.map(s => s.player === player ? { ...s, goals: s.goals + 1, minute: minute || s.minute } : s)
+    : [...existing, { player, goals: 1, minute }];
   const kEl = document.getElementById('liveK');
   if (kEl) kEl.textContent = newK;
   try {
@@ -2386,14 +2419,19 @@ async function quickAddGoal(fixtureId) {
     await sbFetch('knights_goal_scorers?fixture_id=eq.' + fixtureId, { method: 'DELETE' });
     if (updatedScorers.length > 0) {
       await sbFetch('knights_goal_scorers', { method: 'POST',
-        body: JSON.stringify(updatedScorers.map(s => ({ fixture_id: fixtureId, player_name: s.player, goals: s.goals }))) });
+        body: JSON.stringify(updatedScorers.map(s => ({ fixture_id: fixtureId, player_name: s.player, goals: s.goals, minute: s.minute || null }))) });
     }
     await sbFetch('knights_score_snapshots', { method: 'POST',
       body: JSON.stringify([{ fixture_id: fixtureId, knights_goals: newK, opponent_goals: res.opponent }]) });
     await loadResults();
     renderFixtures();
     if (select) select.value = '';
-    showToast(player + ' ⚽');
+    // Advance the minute dropdown to last+2
+    if (minuteSel && minute) {
+      const next = Math.min(minute + 2, 50);
+      minuteSel.value = next;
+    }
+    showToast(player + (minute ? ' ' + minute + '\'' : '') + ' ⚽');
   } catch(e) { showToast('Error: ' + e.message, true); }
 }
 
