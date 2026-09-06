@@ -1907,10 +1907,25 @@ function populateAttendanceSelect() {
   if (current) { select.value = current; renderAdminAttendance(); }
 }
 
-function renderAdminAttendance(fixtureId) {
+async function renderAdminAttendance(fixtureId) {
   const panel = document.getElementById('adminAttendancePanel');
   if (!panel) return;
   if (!fixtureId || squad.length === 0) { panel.innerHTML = ''; return; }
+
+  // If no records exist for this fixture yet, write yes for all squad members now
+  // so the database reflects the default rather than relying on a JS assumption
+  const existing = availability[fixtureId];
+  if (!existing || Object.keys(existing).length === 0) {
+    try {
+      const defaults = squad.map(p => ({ fixture_id: fixtureId, player_id: p.id, status: 'yes' }));
+      await sbFetch('knights_availability?on_conflict=fixture_id,player_id', {
+        method: 'POST',
+        headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
+        body: JSON.stringify(defaults)
+      });
+      await loadAvailability();
+    } catch(e) { /* non-critical, carry on */ }
+  }
 
   const fixtureAvail = availability[fixtureId] || {};
   let html = '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;">';
@@ -1940,6 +1955,7 @@ async function adminToggleAttendance(fixtureId, playerId) {
     });
     await loadAvailability();
     renderAdminAttendance(fixtureId);
+    renderPlayerStats();
   } catch(e) {
     showToast('Error: ' + e.message, true);
   }
