@@ -1238,50 +1238,35 @@ async function shareResult(fixtureId) {
   const res = results[fixtureId];
   if (!f || !res) return;
 
-  const won  = res.knights > res.opponent;
-  const drew = res.knights === res.opponent;
-  const lost = res.knights < res.opponent;
   const teamName = teamConfig.team_name || 'Knights';
 
-  // Opening line based on result
-  let text = '';
-  if (won)  text += '🏆 What a result! ' + teamName + ' win!\n\n';
-  else if (drew) text += '🤝 A hard-earned point for ' + teamName + '!\n\n';
-  else      text += '👏 Heads held high ' + teamName + '!\n\n';
-
   // Score line
-  text += teamName + ' ' + res.knights + ' - ' + res.opponent + ' ' + f.opponent + '\n\n';
+  let text = teamName + ' ' + res.knights + ' - ' + res.opponent + ' ' + f.opponent + '\n\n';
 
-  // Goal scorers
+  // Scorers — one per line with minute if recorded
   const scorers = goalScorers[fixtureId] || [];
   if (scorers.length > 0) {
-    text += '⚽ Well done to today\'s goalscorers:\n';
+    text += 'Well done to today\'s goalscorers:\n\n';
     scorers.forEach(s => {
-      text += s.player + (s.goals > 1 ? ' (' + s.goals + ' goals)' : '') + '\n';
+      const balls = '⚽'.repeat(s.goals);
+      text += s.player + ' ' + balls + '\n';
     });
-    text += '\n';
   }
 
-  // Players of the match
+  // Player of the Match
   if (res.potm) {
-    text += '⭐ Player of the Match: ' + res.potm + '\n';
+    text += '\nPlayer of the Match: ' + res.potm + '\n';
   }
 
   text = text.trim();
 
   if (navigator.share) {
-    try {
-      await navigator.share({ text });
-    } catch(e) {
-      // User cancelled — nothing to do
-    }
+    try { await navigator.share({ text }); } catch(e) {}
   } else {
     try {
       await navigator.clipboard.writeText(text);
       showToast('Result copied — paste into WhatsApp');
-    } catch(e) {
-      showToast('Could not share or copy', true);
-    }
+    } catch(e) { showToast('Could not share or copy', true); }
   }
 }
 
