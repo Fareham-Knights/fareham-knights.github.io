@@ -348,8 +348,8 @@
     </div>
   </div>
   <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
-    <button onclick="shareApp()" title="Share app" aria-label="Share app" style="position:relative;z-index:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.6);width:38px;height:38px;border-radius:8px;font-size:16px;cursor:pointer;flex-shrink:0;">📲</button>
-    <button onclick="switchTab('admin')" title="Manage" aria-label="Admin" style="position:relative;z-index:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.6);width:38px;height:38px;border-radius:8px;font-size:16px;cursor:pointer;flex-shrink:0;">⚙</button>
+    <button onclick="shareApp()" title="Share app" aria-label="Share app" style="position:relative;z-index:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.6);width:38px;height:38px;border-radius:8px;font-size:16px;cursor:pointer;flex-shrink:0;"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5.5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="18.5" r="2.5"/><path d="M8.2 10.7l7.6-4.3M8.2 13.3l7.6 4.3"/></svg></button>
+    <button onclick="switchTab('admin')" title="Manage" aria-label="Admin" style="position:relative;z-index:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.6);width:38px;height:38px;border-radius:8px;font-size:16px;cursor:pointer;flex-shrink:0;"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 13a7.6 7.6 0 000-2l2-1.4-2-3.4-2.3.6a7.6 7.6 0 00-1.7-1l-.4-2.4h-4l-.4 2.4a7.6 7.6 0 00-1.7 1l-2.3-.6-2 3.4L6.6 11a7.6 7.6 0 000 2l-2 1.4 2 3.4 2.3-.6a7.6 7.6 0 001.7 1l.4 2.4h4l.4-2.4a7.6 7.6 0 001.7-1l2.3.6 2-3.4z"/></svg></button>
   </div>
 </header>
 <div class="main">
@@ -385,7 +385,7 @@
         <button onclick="pinDigit('7')" style="height:60px;font-size:22px;font-weight:700;font-family:'Inter',sans-serif;border:1.5px solid var(--grey-200);border-radius:12px;background:var(--white);color:var(--ink);cursor:pointer;">7</button>
         <button onclick="pinDigit('8')" style="height:60px;font-size:22px;font-weight:700;font-family:'Inter',sans-serif;border:1.5px solid var(--grey-200);border-radius:12px;background:var(--white);color:var(--ink);cursor:pointer;">8</button>
         <button onclick="pinDigit('9')" style="height:60px;font-size:22px;font-weight:700;font-family:'Inter',sans-serif;border:1.5px solid var(--grey-200);border-radius:12px;background:var(--white);color:var(--ink);cursor:pointer;">9</button>
-        <button onclick="pinDelete()" style="height:60px;font-size:18px;border:1.5px solid var(--grey-200);border-radius:12px;background:var(--white);color:var(--grey-600);cursor:pointer;">⌫</button>
+        <button onclick="pinDelete()" style="height:60px;font-size:18px;border:1.5px solid var(--grey-200);border-radius:12px;background:var(--white);color:var(--grey-600);cursor:pointer;"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5h11v14H9l-5-7z"/><path d="M12.5 10l4 4M16.5 10l-4 4"/></svg></button>
         <button onclick="pinDigit('0')" style="height:60px;font-size:22px;font-weight:700;font-family:'Inter',sans-serif;border:1.5px solid var(--grey-200);border-radius:12px;background:var(--white);color:var(--ink);cursor:pointer;">0</button>
         <div></div>
       </div>
@@ -399,21 +399,21 @@
 
 <nav class="bottom-nav">
   <button class="nav-item active" onclick="switchTab('fixtures')" id="nav-fixtures">
-    <span class="nav-icon">📅</span>
+    <span class="nav-icon"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="16" rx="2"/><path d="M8 3v4M16 3v4M3.5 10h17"/></svg></span>
     <span class="nav-label">Fixtures</span>
   </button>
   <button class="nav-item" onclick="switchTab('results')" id="nav-results">
-    <span class="nav-icon">📊</span>
+    <span class="nav-icon"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V11M12 20V4M19 20v-7"/></svg></span>
     <span class="nav-label">Results</span>
   </button>
   <button class="nav-item" onclick="switchTab('stats')" id="nav-stats">
-    <span class="nav-icon">🏅</span>
+    <span class="nav-icon"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="15" r="6"/><path d="M9 4l1 6.5M15 4l-1 6.5M9 4h6"/><path d="M10 15.2l1.3 1.3 2.9-2.9"/></svg></span>
     <span class="nav-label">Stats</span>
   </button>
 </nav>
 
 <div class="toast" id="toast"></div>
-<div class="pull-indicator" id="pullIndicator">↻ Release to refresh</div>
+<div class="pull-indicator" id="pullIndicator"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em"><path d="M20 11A8 8 0 006.3 6.3L4 8.6M4 4v4.6h4.6"/><path d="M4 13a8 8 0 0013.7 4.7L20 15.4M20 20v-4.6h-4.6"/></svg> Release to refresh</div>
 
 <!-- Share App modal -->
 <div id="shareModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:200;align-items:center;justify-content:center;">
@@ -423,7 +423,7 @@
     <img id="shareQR" src="" alt="QR code" style="width:180px;height:180px;border-radius:8px;border:1px solid var(--grey-200);">
     <p style="font-size:11px;color:var(--grey-400);margin:10px 0 16px;word-break:break-all;" id="shareUrl"></p>
     <div style="display:flex;gap:10px;justify-content:center;">
-      <button class="btn" onclick="doShareApp()">↗ Share Link</button>
+      <button class="btn" onclick="doShareApp()"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em"><circle cx="18" cy="5.5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="18.5" r="2.5"/><path d="M8.2 10.7l7.6-4.3M8.2 13.3l7.6 4.3"/></svg> Share Link</button>
       <button style="background:none;border:1.5px solid var(--grey-200);border-radius:8px;padding:10px 16px;font-size:13px;font-weight:600;color:var(--grey-600);cursor:pointer;font-family:Inter,sans-serif;" onclick="document.getElementById('shareModal').style.display='none'">Close</button>
     </div>
   </div>
@@ -442,6 +442,38 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const ADMIN_EMAIL = 'knights@gmail.com';
 
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ── Icons ──────────────────────────────────────────────────────────────
+// Small inline SVG line-icon set, replacing emoji throughout the UI.
+// Each icon is sized to 1em so it follows the surrounding text size and
+// colour (currentColor) wherever it's dropped in. Not used inside <option>
+// text or plain-text contexts (native <select> options, toast messages,
+// the WhatsApp share text) since those can't render markup — those spots
+// keep plain words instead of a symbol.
+const ICONS = {
+  ball: '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.5" style="vertical-align:-0.15em"><circle cx="12" cy="12" r="9"/><path d="M12 7.3l3.8 2.7-1.4 4.4h-4.8L8.2 10z"/><path d="M12 3v4.3M4.8 8l3.4 2M19.2 8l-3.4 2M6.3 17l1.7-4M17.7 17l-1.7-4M9.4 21l1.2-4.3M14.6 16.7l1.1 4.3"/></svg>',
+  live: '<svg viewBox="0 0 24 24" width="0.6em" height="0.6em" fill="currentColor" style="vertical-align:0.05em"><circle cx="12" cy="12" r="10"/></svg>',
+  close: '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" style="vertical-align:-0.15em"><path d="M5 5l14 14M19 5L5 19"/></svg>',
+  check: '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em"><path d="M4 13l5 5L20 6"/></svg>',
+  share: '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em"><circle cx="18" cy="5.5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="18.5" r="2.5"/><path d="M8.2 10.7l7.6-4.3M8.2 13.3l7.6 4.3"/></svg>',
+  settings: '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em"><circle cx="12" cy="12" r="3"/><path d="M19.4 13a7.6 7.6 0 000-2l2-1.4-2-3.4-2.3.6a7.6 7.6 0 00-1.7-1l-.4-2.4h-4l-.4 2.4a7.6 7.6 0 00-1.7 1l-2.3-.6-2 3.4L6.6 11a7.6 7.6 0 000 2l-2 1.4 2 3.4 2.3-.6a7.6 7.6 0 001.7 1l.4 2.4h4l.4-2.4a7.6 7.6 0 001.7-1l2.3.6 2-3.4z"/></svg>',
+  refresh: '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em"><path d="M20 11A8 8 0 006.3 6.3L4 8.6M4 4v4.6h4.6"/><path d="M4 13a8 8 0 0013.7 4.7L20 15.4M20 20v-4.6h-4.6"/></svg>',
+  chevronDown: '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em"><path d="M6 9l6 6 6-6"/></svg>',
+  chevronUp: '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em"><path d="M6 15l6-6 6 6"/></svg>',
+  play: '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" style="vertical-align:-0.15em"><path d="M6 4l14 8-14 8z"/></svg>',
+  pause: '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" style="vertical-align:-0.15em"><rect x="5" y="4" width="5" height="16" rx="1"/><rect x="14" y="4" width="5" height="16" rx="1"/></svg>',
+  backspace: '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em"><path d="M9 5h11v14H9l-5-7z"/><path d="M12.5 10l4 4M16.5 10l-4 4"/></svg>',
+  download: '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 19h16"/></svg>',
+  edit: '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M14 6l4 4"/></svg>',
+  calendar: '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em"><rect x="3.5" y="5" width="17" height="16" rx="2"/><path d="M8 3v4M16 3v4M3.5 10h17"/></svg>',
+  barChart: '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em"><path d="M5 20V11M12 20V4M19 20v-7"/></svg>',
+  medal: '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em"><circle cx="12" cy="15" r="6"/><path d="M9 4l1 6.5M15 4l-1 6.5M9 4h6"/><path d="M10 15.2l1.3 1.3 2.9-2.9"/></svg>',
+  arrowLeft: '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>',
+  star: '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" style="vertical-align:-0.15em"><path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.6 6.1 20.5l1.2-6.5L2.5 9.4l6.6-.9z"/></svg>',
+  clock: '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>',
+  pin: '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em"><path d="M12 21s7-6.2 7-11.5A7 7 0 105 9.5C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.3"/></svg>'
+};
+function icon(name) { return ICONS[name] || ''; }
 
 // Fallback squad list, used until players are added via the Squad admin section
 let PLAYERS = ['Billy', 'LJ', 'Cooper', 'George', 'Dylan', 'Arlo', 'Chase', 'Louis', 'Hayes'];
@@ -593,18 +625,18 @@ async function renderAdminContent(email) {
       <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:var(--crimson);margin-bottom:6px;">TODAY'S MATCH</div>
       <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--ink);margin-bottom:4px;">${teamConfig.team_name || 'Knights'} vs ${todayF.opponent}</div>
       <div style="font-size:12px;color:var(--grey-500);margin-bottom:14px;">${todayF.home_away}${todayF.location ? ' · ' + todayF.location : ''}</div>
-      <button onclick="goLiveFromFixture(${todayF.id})" style="width:100%;padding:12px;border-radius:8px;border:none;background:var(--crimson);color:#fff;font-weight:700;font-size:14px;cursor:pointer;font-family:'Bebas Neue',sans-serif;letter-spacing:1px;">🔴 Go Live</button>
+      <button onclick="goLiveFromFixture(${todayF.id})" style="width:100%;padding:12px;border-radius:8px;border:none;background:var(--crimson);color:#fff;font-weight:700;font-size:14px;cursor:pointer;font-family:'Bebas Neue',sans-serif;letter-spacing:1px;">${icon('live')} Go Live</button>
     </div>` : '';
 
   // Live match card — appears once a draft result exists
   const liveCard = liveF ? `
     <div style="background:linear-gradient(135deg,var(--crimson) 0%,var(--ink) 100%);border-radius:12px;padding:20px;margin-bottom:16px;color:#fff;">
-      <div style="font-size:11px;font-weight:700;letter-spacing:3px;color:var(--gold);margin-bottom:6px;">🔴 LIVE MATCH</div>
+      <div style="font-size:11px;font-weight:700;letter-spacing:3px;color:var(--gold);margin-bottom:6px;">${icon('live')} LIVE MATCH</div>
       <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;margin-bottom:14px;">${teamConfig.team_name || 'Knights'} vs ${liveF.opponent}</div>
       <div style="text-align:center;margin-bottom:14px;">
         <div id="matchClock" style="font-family:'Bebas Neue',sans-serif;font-size:48px;color:var(--gold);line-height:1;letter-spacing:2px;">00:00</div>
         <div style="display:flex;justify-content:center;gap:8px;margin-top:8px;flex-wrap:wrap;">
-          <button id="clockToggleBtn" onclick="toggleClock()" style="padding:7px 18px;border-radius:8px;border:1px solid rgba(255,255,255,0.4);background:rgba(255,255,255,0.1);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;">▶ Start</button>
+          <button id="clockToggleBtn" onclick="toggleClock()" style="padding:7px 18px;border-radius:8px;border:1px solid rgba(255,255,255,0.4);background:rgba(255,255,255,0.1);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;">${icon('play')} Start</button>
           <button onclick="skipClock(3)" style="padding:7px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.7);font-size:12px;cursor:pointer;font-family:Inter,sans-serif;">+3 min</button>
           <button onclick="skipClock(10)" style="padding:7px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.7);font-size:12px;cursor:pointer;font-family:Inter,sans-serif;">+10 min</button>
           <button onclick="resetClock()" style="padding:7px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.2);background:none;color:rgba(255,255,255,0.4);font-size:11px;cursor:pointer;font-family:Inter,sans-serif;">Reset</button>
@@ -633,7 +665,7 @@ async function renderAdminContent(email) {
       <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px;">
         <select id="quickScorerSelect" style="flex:1;padding:8px;border-radius:6px;border:none;font-size:13px;font-family:Inter,sans-serif;">
           <option value="">Goal scorer...</option>
-          <option value="Own Goal">⚽ Own Goal</option>
+          <option value="Own Goal">Own Goal</option>
           ${PLAYERS.map(p => '<option value="' + p + '">' + p + '</option>').join('')}
         </select>
         <select id="quickMinuteSelect" style="width:64px;padding:8px;border-radius:6px;border:none;font-size:13px;font-family:Inter,sans-serif;">
@@ -645,13 +677,13 @@ async function renderAdminContent(email) {
       <div style="font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:12px;text-align:center;" id="clockMinuteHint">Clock not started — minute from dropdown</div>
       <div style="display:flex;gap:8px;">
         <button onclick="quickPublish(${liveF.id})" style="flex:1;padding:10px;border-radius:8px;border:none;background:var(--gold);color:var(--ink);font-weight:700;font-size:13px;cursor:pointer;font-family:'Bebas Neue',sans-serif;letter-spacing:1px;">Publish Full Time</button>
-        <button onclick="openFullResultForm(${liveF.id})" style="padding:10px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.3);background:none;color:rgba(255,255,255,0.7);font-size:12px;cursor:pointer;font-family:Inter,sans-serif;white-space:nowrap;">Full form ↓</button>
+        <button onclick="openFullResultForm(${liveF.id})" style="padding:10px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.3);background:none;color:rgba(255,255,255,0.7);font-size:12px;cursor:pointer;font-family:Inter,sans-serif;white-space:nowrap;">Full form ${icon('chevronDown')}</button>
       </div>
     </div>` : '';
 
   container.innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0 4px;">
-      <button onclick="switchTab('fixtures')" style="background:none;border:none;cursor:pointer;font-size:13px;font-weight:600;color:var(--crimson);font-family:'Inter',sans-serif;padding:0;display:flex;align-items:center;gap:4px;">← Back to app</button>
+      <button onclick="switchTab('fixtures')" style="background:none;border:none;cursor:pointer;font-size:13px;font-weight:600;color:var(--crimson);font-family:'Inter',sans-serif;padding:0;display:flex;align-items:center;gap:4px;">${icon('arrowLeft')} Back to app</button>
       <div style="font-size:12px;color:var(--grey-400);">${email}</div>
       <button onclick="signOutAdmin()" style="background:none;border:none;cursor:pointer;font-size:13px;font-weight:600;color:var(--grey-400);font-family:'Inter',sans-serif;padding:0;">Sign out</button>
     </div>
@@ -676,7 +708,7 @@ async function renderAdminContent(email) {
           <label>Opponent Goals</label>
           <input type="number" id="opponentGoals" min="0" placeholder="0">
         </div>
-        <button class="btn" style="width:100%;margin-bottom:20px;background:var(--crimson);border:none;letter-spacing:1px;font-family:'Bebas Neue',sans-serif;font-size:16px;" onclick="saveResult(false)">🔴 Go Live — Save Draft</button>
+        <button class="btn" style="width:100%;margin-bottom:20px;background:var(--crimson);border:none;letter-spacing:1px;font-family:'Bebas Neue',sans-serif;font-size:16px;" onclick="saveResult(false)">${icon('live')} Go Live — Save Draft</button>
         <div class="form-group">
           <label>Goalkeeper (for clean sheet tracking)</label>
           <select id="goalkeeperSelect">
@@ -705,7 +737,7 @@ async function renderAdminContent(email) {
           <button class="btn btn-gold" onclick="saveResult(true)">Publish Result</button>
         </div>
       </div>
-      <button id="adminShareBtn" style="display:none;margin-top:12px;background:none;border:1.5px solid var(--grey-200);border-radius:8px;padding:10px 16px;font-size:13px;font-weight:600;color:var(--grey-600);cursor:pointer;font-family:Inter,sans-serif;width:100%;" onclick="shareCurrentResult()">↗ Share Result</button>
+      <button id="adminShareBtn" style="display:none;margin-top:12px;background:none;border:1.5px solid var(--grey-200);border-radius:8px;padding:10px 16px;font-size:13px;font-weight:600;color:var(--grey-600);cursor:pointer;font-family:Inter,sans-serif;width:100%;" onclick="shareCurrentResult()">${icon('share')} Share Result</button>
     </div>
 
 
@@ -804,7 +836,7 @@ async function renderAdminContent(email) {
         <div class="section">
       <button onclick="toggleSquadAdmin()" style="background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:8px;padding:0;width:100%;text-align:left;">
         <h3 style="margin:0;font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px;color:var(--crimson);">Squad</h3>
-        <span id="squadAdminArrow" style="font-size:11px;color:var(--grey-400);margin-left:auto;">▼ manage</span>
+        <span id="squadAdminArrow" style="font-size:11px;color:var(--grey-400);margin-left:auto;">${icon('chevronDown')} manage</span>
       </button>
       <div id="squadQuickList" style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px;">${squad.filter(p => p.active !== false).map(p => '<span style="background:var(--grey-50);border:1px solid var(--grey-200);border-radius:16px;padding:3px 10px;font-size:12px;font-weight:600;color:var(--grey-700);">' + p.name + '</span>').join('')}</div>
       <div id="squadAdminBody" style="display:none; margin-top:16px;">
@@ -821,15 +853,15 @@ async function renderAdminContent(email) {
       <h3 style="margin:0 0 8px;font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px;color:var(--crimson);">Export Season Data</h3>
       <p style="font-size:13px;color:var(--grey-600);margin-bottom:14px;">Download your season data. The CSV opens in Excel or Google Sheets. The JSON backup contains everything and is used to restore data if anything goes wrong.</p>
       <div style="display:flex;gap:10px;flex-wrap:wrap;">
-        <button class="btn" onclick="exportSeasonCSV()">⬇ Export as CSV</button>
-        <button class="btn" onclick="exportSeasonData()">⬇ Full Backup (JSON)</button>
+        <button class="btn" onclick="exportSeasonCSV()">${icon('download')} Export as CSV</button>
+        <button class="btn" onclick="exportSeasonData()">${icon('download')} Full Backup (JSON)</button>
       </div>
     </div>
 
     <div class="section" style="border-top: 1px solid var(--grey-200); padding-top: 16px; margin-top: 8px;">
       <button onclick="toggleTeamSettings()" style="background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:8px;padding:0;width:100%;text-align:left;">
-        <h3 style="margin:0;color:var(--grey-400);font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:1px;">⚙ Team Settings</h3>
-        <span id="teamSettingsArrow" style="font-size:11px;color:var(--grey-400);margin-left:auto;">▼ expand</span>
+        <h3 style="margin:0;color:var(--grey-400);font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:1px;">${icon('settings')} Team Settings</h3>
+        <span id="teamSettingsArrow" style="font-size:11px;color:var(--grey-400);margin-left:auto;">${icon('chevronDown')} expand</span>
       </button>
       <div id="teamSettingsBody" style="display:none; margin-top:16px;">
         <div class="form-group">
@@ -1090,8 +1122,8 @@ function buildAvailabilitySection(fixtureId, light) {
     rows += '<div class="availability-row">' +
       '<span>' + p.name + '</span>' +
       '<span>' +
-      '<button class="avail-btn yes' + (st === 'yes' ? ' active' : '') + '" onclick="setAvailability(' + fixtureId + ',' + p.id + ",'yes')\">✓</button>" +
-      '<button class="avail-btn no' + (st === 'no' ? ' active' : '') + '" onclick="setAvailability(' + fixtureId + ',' + p.id + ",'no')\">✕</button>" +
+      '<button class="avail-btn yes' + (st === 'yes' ? ' active' : '') + '" onclick="setAvailability(' + fixtureId + ',' + p.id + ",'yes')\">" + icon('check') + "</button>" +
+      '<button class="avail-btn no' + (st === 'no' ? ' active' : '') + '" onclick="setAvailability(' + fixtureId + ',' + p.id + ",'no')\">" + icon('close') + "</button>" +
       '</span>' +
       '</div>';
   });
@@ -1198,13 +1230,13 @@ function buildMatchCard(f) {
         : '';
       return name + (g.goals > 1 ? ' (' + g.goals + ')' : '') + minutesStr;
     }).join('  ·  ');
-    scorersLine = '<div class="match-scorers" style="grid-column: 1 / -1;">⚽ ' + scorersText + '</div>';
+    scorersLine = '<div class="match-scorers" style="grid-column: 1 / -1;">' + icon('ball') + ' ' + scorersText + '</div>';
   }
 
   // Player of the Match line for played matches
   let potmLine = '';
   if (isPlayed && res.potm) {
-    potmLine = '<div class="match-potm" style="grid-column: 1 / -1;">⭐ Player of the Match: ' + res.potm + '</div>';
+    potmLine = '<div class="match-potm" style="grid-column: 1 / -1;">' + icon('star') + ' Player of the Match: ' + res.potm + '</div>';
   }
 
   // Times line for unplayed fixtures
@@ -1213,9 +1245,9 @@ function buildMatchCard(f) {
     const koStr = kickoff.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
     if (f.meet_time) {
       const meetStr = new Date(f.meet_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-      timesLine = '<div class="match-scorers" style="grid-column: 1 / -1; font-size:12px; color:var(--grey-600);">🕐 Meet ' + meetStr + ' · KO ' + koStr + '</div>';
+      timesLine = '<div class="match-scorers" style="grid-column: 1 / -1; font-size:12px; color:var(--grey-600);">' + icon('clock') + ' Meet ' + meetStr + ' · KO ' + koStr + '</div>';
     } else {
-      timesLine = '<div class="match-scorers" style="grid-column: 1 / -1; font-size:12px; color:var(--grey-600);">⚽ KO ' + koStr + '</div>';
+      timesLine = '<div class="match-scorers" style="grid-column: 1 / -1; font-size:12px; color:var(--grey-600);">' + icon('clock') + ' KO ' + koStr + '</div>';
     }
   }
 
@@ -1223,7 +1255,7 @@ function buildMatchCard(f) {
   // button below replaces it as the relevant action.
   let locationLine = '';
   if (f.location && !isPlayed) {
-    locationLine = '<div class="match-scorers" style="grid-column: 1 / -1;"><a href="' + mapLink(f.location) + '" target="_blank" rel="noopener" style="color:var(--crimson);">📍 ' + f.location + '</a></div>';
+    locationLine = '<div class="match-scorers" style="grid-column: 1 / -1;"><a href="' + mapLink(f.location) + '" target="_blank" rel="noopener" style="color:var(--crimson);">' + icon('pin') + ' ' + f.location + '</a></div>';
   }
 
   // "Who's coming?" hidden from public — managed by admin only
@@ -1340,8 +1372,8 @@ function renderFixtures() {
     'Results and player stats for the 26/27 Fareham Knights season. Fixtures and training are managed on Spond.' +
     '</div>' +
     '<div id="homeScreenTip" style="background:var(--gold);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:var(--ink);display:flex;align-items:center;justify-content:space-between;gap:8px;">' +
-    '<span>📲 Tap <strong>Share → Add to Home Screen</strong> for quick access</span>' +
-    '<button onclick="document.getElementById(\'homeScreenTip\').style.display=\'none\'" style="background:none;border:none;cursor:pointer;font-size:16px;color:var(--ink);padding:0;line-height:1;flex-shrink:0;">✕</button>' +
+    '<span>' + icon('share') + ' Tap <strong>Share → Add to Home Screen</strong> for quick access</span>' +
+    '<button onclick="document.getElementById(\'homeScreenTip\').style.display=\'none\'" style="background:none;border:none;cursor:pointer;font-size:16px;color:var(--ink);padding:0;line-height:1;flex-shrink:0;">' + icon('close') + '</button>' +
     '</div>';
 
   // Live score hero card
@@ -1350,12 +1382,12 @@ function renderFixtures() {
     const teamName = teamConfig.team_name || 'Knights';
     const liveScorers = goalScorers[liveMatch.id] || [];
     const scorersLine = liveScorers.length > 0
-      ? '<div style="font-size:13px;color:rgba(255,255,255,0.75);margin-top:8px;">⚽ ' +
+      ? '<div style="font-size:13px;color:rgba(255,255,255,0.75);margin-top:8px;">' + icon('ball') + ' ' +
         liveScorers.map(s => s.player + (s.goals > 1 ? ' (' + s.goals + ')' : '')).join('  ·  ') +
         '</div>'
       : '';
     html += '<div class="next-match-card">' +
-      '<div class="next-match-label" style="color:var(--gold);letter-spacing:3px;">🔴 LIVE</div>' +
+      '<div class="next-match-label" style="color:var(--gold);letter-spacing:3px;">' + icon('live') + ' LIVE</div>' +
       '<div class="next-match-teams">' + teamName + ' vs ' + liveMatch.opponent + '</div>' +
       '<div class="next-match-detail" style="font-size:16px;color:rgba(255,255,255,0.85);">' + formatDate(liveMatch.date) + ' · ' + liveMatch.home_away + '</div>' +
       '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:52px;color:var(--gold);line-height:1;margin:12px 0;">' +
@@ -1512,7 +1544,7 @@ function setStatsSort(column) {
 
 function sortArrow(column) {
   if (statsSortColumn !== column) return '';
-  return '<span class="sort-arrow">' + (statsSortDir === 'asc' ? '▲' : '▼') + '</span>';
+  return '<span class="sort-arrow">' + (statsSortDir === 'asc' ? icon('chevronUp') : icon('chevronDown')) + '</span>';
 }
 
 // ── Player Stats tab ────────────────────────────────────────────────────
@@ -1823,7 +1855,7 @@ function toggleSquadAdmin() {
   if (!body) return;
   const open = body.style.display === 'none';
   body.style.display = open ? 'block' : 'none';
-  if (arrow) arrow.textContent = open ? '▲ collapse' : '▼ expand';
+  if (arrow) arrow.innerHTML = (open ? icon('chevronUp') : icon('chevronDown')) + (open ? ' collapse' : ' expand');
   if (open) { loadSquadAdmin().then(renderSquadAdminList); }
 }
 
@@ -1833,7 +1865,7 @@ function toggleTeamSettings() {
   if (!body) return;
   const open = body.style.display === 'none';
   body.style.display = open ? 'block' : 'none';
-  if (arrow) arrow.textContent = open ? '▲ collapse' : '▼ expand';
+  if (arrow) arrow.innerHTML = (open ? icon('chevronUp') : icon('chevronDown')) + (open ? ' collapse' : ' expand');
   if (open) prefillConfigForm();
 }
 
@@ -1882,7 +1914,7 @@ function populateMatchSelect() {
   select.innerHTML = '<option value="">-- Select a match --</option>';
   fixtures.forEach(f => {
     const res = results[f.id];
-    const status = !res ? '' : res.published ? ' ✓ published' : ' ✎ draft';
+    const status = !res ? '' : res.published ? ' — published' : ' — draft';
     const label = f.opponent + ' (' + f.date + ')' + status;
     select.innerHTML += '<option value="' + f.id + '">' + label + '</option>';
   });
@@ -1930,7 +1962,7 @@ async function renderAdminAttendance(fixtureId) {
       'background:' + (isOut ? 'rgba(220,38,38,0.08)' : 'rgba(22,163,74,0.08)') + ';' +
       'color:' + (isOut ? 'var(--red)' : '#16a34a') + ';' +
       'font-size:13px;font-weight:600;font-family:Inter,sans-serif;cursor:pointer;">' +
-      (isOut ? '✕ ' : '✓ ') + p.name +
+      (isOut ? icon('close') : icon('check')) + ' ' + p.name +
       '</button>';
   });
   html += '</div><p style="font-size:11px;color:var(--grey-400);margin-top:10px;">Tap to toggle · Green = attended · Red = did not play</p>';
@@ -2153,7 +2185,7 @@ function loadMatchForResult() {
     const label = document.createElement('p');
     label.id = 'draftStatusLabel';
     label.style.cssText = 'font-size:12px;color:var(--gold-dark);font-weight:600;margin-bottom:8px;';
-    label.textContent = '✎ Draft saved — not yet visible to parents';
+    label.innerHTML = icon('edit') + ' Draft saved — not yet visible to parents';
     form.prepend(label);
   }
 
@@ -2182,7 +2214,7 @@ function addGoalScorerInput(playerName, goals, minute) {
 
   const ogOpt = document.createElement('option');
   ogOpt.value = 'Own Goal';
-  ogOpt.textContent = '⚽ Own Goal';
+  ogOpt.textContent = 'Own Goal';
   if (playerName === 'Own Goal') ogOpt.selected = true;
   select.appendChild(ogOpt);
 
@@ -2223,7 +2255,7 @@ function addGoalScorerInput(playerName, goals, minute) {
   const removeBtn = document.createElement('button');
   removeBtn.className = 'btn';
   removeBtn.style.padding = '6px 10px';
-  removeBtn.textContent = '✕';
+  removeBtn.innerHTML = icon('close');
   removeBtn.onclick = function() { div.remove(); };
 
   div.appendChild(select);
@@ -2419,7 +2451,7 @@ function updateClockDisplay() {
   const el = document.getElementById('matchClock');
   if (el) el.textContent = clockDisplay();
   const btn = document.getElementById('clockToggleBtn');
-  if (btn) btn.textContent = clockRunning ? '⏸ Pause' : '▶ Start';
+  if (btn) btn.innerHTML = (clockRunning ? icon('pause') : icon('play')) + (clockRunning ? ' Pause' : ' Start');
   const hint = document.getElementById('clockMinuteHint');
   if (hint) {
     hint.textContent = clockRunning
@@ -2536,7 +2568,7 @@ async function quickAddGoal(fixtureId) {
       const next = Math.min(minute + 2, 50);
       minuteSel.value = next;
     }
-    showToast(player + (minute ? ' ' + minute + '\'' : '') + ' ⚽');
+    showToast(player + (minute ? ' ' + minute + '\'' : '') + ' goal!');
   } catch(e) { showToast('Error: ' + e.message, true); }
 }
 
@@ -2617,7 +2649,7 @@ async function doShareApp() {
     if (dist <= 0) { pulling = false; return; }
     const h = Math.min(dist, MAX_PULL);
     indicator.style.height = h + 'px';
-    indicator.textContent = dist >= THRESHOLD ? '↻ Release to refresh' : '↓ Pull to refresh';
+    indicator.innerHTML = (dist >= THRESHOLD ? icon('refresh') : icon('chevronDown')) + (dist >= THRESHOLD ? ' Release to refresh' : ' Pull to refresh');
   }, { passive: true });
 
   document.addEventListener('touchend', async () => {
