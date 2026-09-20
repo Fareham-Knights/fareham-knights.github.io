@@ -1157,9 +1157,23 @@ function buildMatchCard(f) {
     scoreHtml = '<div class="score-display result">' + res.knights + ' - ' + res.opponent + '</div>';
   } else if (isFuture) {
     const diff = kickoff - now;
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    scoreHtml = '<div class="fixture-status">In ' + (days > 0 ? days + 'd ' : '') + hours + 'h</div>';
+    const totalHours = diff / (1000 * 60 * 60);
+    const totalDays = totalHours / 24;
+    let countdown;
+    if (totalDays >= 7) {
+      // A week or more away — round to the closest week.
+      const weeks = Math.round(totalDays / 7);
+      countdown = weeks + (weeks === 1 ? ' week' : ' weeks');
+    } else if (totalDays >= 1) {
+      // Inside the final week — count down in whole days.
+      const days = Math.floor(totalDays);
+      countdown = days + (days === 1 ? ' day' : ' days');
+    } else {
+      // Inside the final day — count down in hours.
+      const hours = Math.max(1, Math.ceil(totalHours));
+      countdown = hours + (hours === 1 ? ' hour' : ' hours');
+    }
+    scoreHtml = '<div class="fixture-status">In ' + countdown + '</div>';
   } else {
     scoreHtml = '<div class="fixture-status">vs</div>';
   }
