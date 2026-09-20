@@ -1182,7 +1182,7 @@ function buildMatchCard(f) {
       const minutesStr = g.minutes.length
         ? ' <span style="color:var(--grey-400);font-size:10px;">' + g.minutes.map(m => m + '\'').join(', ') + '</span>'
         : '';
-      return name + (g.goals > 1 ? ' ' + g.goals : '') + minutesStr;
+      return name + (g.goals > 1 ? ' (' + g.goals + ')' : '') + minutesStr;
     }).join('  ·  ');
     scorersLine = '<div class="match-scorers" style="grid-column: 1 / -1;">⚽ ' + scorersText + '</div>';
   }
