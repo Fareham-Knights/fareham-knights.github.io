@@ -481,6 +481,7 @@ let PLAYERS = ['Billy', 'LJ', 'Cooper', 'George', 'Dylan', 'Arlo', 'Chase', 'Lou
 let fixtures = [];
 let results = {};
 let goalScorers = {};
+let opponentGoals = {}; // one row per opponent goal: { minute, penalty } — timed the same way goalScorers is
 let squad = [];
 let availability = {};
 let teamConfig = {};
@@ -658,8 +659,9 @@ async function renderAdminContent(email) {
           <div style="display:flex;align-items:center;gap:8px;">
             <button onclick="quickScore(${liveF.id},0,-1)" style="width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.1);color:#fff;font-size:18px;cursor:pointer;line-height:1;">−</button>
             <span id="liveO" style="font-family:'Bebas Neue',sans-serif;font-size:42px;color:var(--gold);min-width:28px;text-align:center;">${liveRes.opponent}</span>
-            <button onclick="quickScore(${liveF.id},0,1)" style="width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.1);color:#fff;font-size:18px;cursor:pointer;line-height:1;">+</button>
+            <div style="width:32px;"></div>
           </div>
+          <div style="font-size:10px;color:rgba(255,255,255,0.35);margin-top:4px;">use + Opp Goal below</div>
         </div>
       </div>
       <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px;">
@@ -672,7 +674,16 @@ async function renderAdminContent(email) {
           <option value="">Min</option>
           ${Array.from({length:50},(_,i)=>i+1).map(n=>'<option value="'+n+'"'+(n===Math.min(lastGoalMinute+2,50)?' selected':'')+'>'+n+'\'</option>').join('')}
         </select>
+        <label style="display:flex;align-items:center;gap:3px;font-size:11px;color:rgba(255,255,255,0.7);white-space:nowrap;"><input type="checkbox" id="quickPenalty"> Pen</label>
         <button onclick="quickAddGoal(${liveF.id})" style="padding:8px 14px;border-radius:6px;border:none;background:var(--gold);color:var(--ink);font-weight:700;font-size:13px;cursor:pointer;font-family:Inter,sans-serif;white-space:nowrap;">+ Goal</button>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px;">
+        <select id="quickOppMinuteSelect" style="flex:1;padding:8px;border-radius:6px;border:none;font-size:13px;font-family:Inter,sans-serif;">
+          <option value="">Min</option>
+          ${Array.from({length:50},(_,i)=>i+1).map(n=>'<option value="'+n+'"'+(n===Math.min(lastGoalMinute+2,50)?' selected':'')+'>'+n+'\'</option>').join('')}
+        </select>
+        <label style="display:flex;align-items:center;gap:3px;font-size:11px;color:rgba(255,255,255,0.7);white-space:nowrap;"><input type="checkbox" id="quickOppPenalty"> Pen</label>
+        <button onclick="quickAddOpponentGoal(${liveF.id})" style="padding:8px 14px;border-radius:6px;border:none;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:#fff;font-weight:700;font-size:13px;cursor:pointer;font-family:Inter,sans-serif;white-space:nowrap;">+ Opp Goal</button>
       </div>
       <div style="font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:12px;text-align:center;" id="clockMinuteHint">Clock not started — minute from dropdown</div>
       <div style="display:flex;gap:8px;">
@@ -719,6 +730,11 @@ async function renderAdminContent(email) {
         <h3 style="margin-top:20px;margin-bottom:12px;">Goal Scorers</h3>
         <div id="goalScorersList"></div>
         <button class="btn" style="margin-top:12px;" onclick="addGoalScorerInput()">+ Add Goal Scorer</button>
+        <h3 style="margin-top:20px;margin-bottom:4px;">Opponent Goal Times</h3>
+        <p style="font-size:12px;color:var(--grey-600);margin:4px 0 8px;">Just the minute (and whether it was a penalty) — no player needed.</p>
+        <div id="opponentGoalsList"></div>
+        <button class="btn" style="margin-top:12px;" onclick="addOpponentGoalInput()">+ Add Opponent Goal</button>
+        <div id="matchTimeline" style="margin-top:16px;"></div>
         <h3 style="margin-top:20px;margin-bottom:4px;">Player of the Match</h3>
         <div class="form-group" style="margin-top:10px;">
           <select id="potmSelect">
@@ -732,6 +748,56 @@ async function renderAdminContent(email) {
         <h3 style="margin-top:20px;margin-bottom:8px;">Match Story</h3>
         <p style="font-size:12px;color:var(--grey-600);margin-bottom:8px;">Auto-generated when you publish — edit to make it your own.</p>
         <textarea id="narrativeInput" rows="2" placeholder="e.g. Brilliant comeback from 2-0 down — what a result!" style="width:100%;padding:8px 12px;border:1.5px solid var(--grey-200);border-radius:6px;font-size:13px;font-family:'Inter',sans-serif;outline:none;resize:vertical;"></textarea>
+
+        <h3 style="margin-top:20px;margin-bottom:4px;">Matchday Report</h3>
+        <p style="font-size:12px;color:var(--grey-600);margin-bottom:8px;">Internal record for the Matchday submission — parents never see this.</p>
+        <div class="form-group">
+          <label>Referee Full Name</label>
+          <input type="text" id="refRefereeName" placeholder="e.g., John Smith">
+        </div>
+        <div class="form-group">
+          <label>Type of Pitch</label>
+          <select id="refPitchType">
+            <option value="">-- Select --</option>
+            <option value="Astro">Astro</option>
+            <option value="Grass">Grass</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Pitch Condition</label>
+          <select id="refPitchCondition">
+            <option value="">-- Select --</option>
+            <option value="Good">Good</option>
+            <option value="Average">Average</option>
+            <option value="Poor">Poor</option>
+            <option value="Waterlogged">Waterlogged</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Respect Person</label>
+          <input type="text" id="refRespectPerson" placeholder="e.g., Amy Lloyd">
+        </div>
+        <div class="form-group" style="display:flex;gap:10px;flex-wrap:wrap;">
+          <div style="flex:1;min-width:110px;">
+            <label style="display:block;margin-bottom:4px;">Referee Score %</label>
+            <input type="number" id="refRefereeScore" min="0" max="100" placeholder="0-100">
+          </div>
+          <div style="flex:1;min-width:110px;">
+            <label style="display:block;margin-bottom:4px;">Coaches Behaviour %</label>
+            <input type="number" id="refCoachesBehaviour" min="0" max="100" placeholder="0-100">
+          </div>
+        </div>
+        <div class="form-group" style="display:flex;gap:10px;flex-wrap:wrap;">
+          <div style="flex:1;min-width:110px;">
+            <label style="display:block;margin-bottom:4px;">Parents Behaviour %</label>
+            <input type="number" id="refParentsBehaviour" min="0" max="100" placeholder="0-100">
+          </div>
+          <div style="flex:1;min-width:110px;">
+            <label style="display:block;margin-bottom:4px;">Players Behaviour %</label>
+            <input type="number" id="refPlayersBehaviour" min="0" max="100" placeholder="0-100">
+          </div>
+        </div>
+
         <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;">
           <button class="btn" onclick="saveResult(false)">Save Draft</button>
           <button class="btn btn-gold" onclick="saveResult(true)">Publish Result</button>
@@ -892,6 +958,11 @@ async function renderAdminContent(email) {
           <label>Club Contact URL</label>
           <input type="url" id="cfgClubUrl" placeholder="https://...">
         </div>
+        <div class="form-group">
+          <label>Respect Person (default)</label>
+          <input type="text" id="cfgRespectPerson" placeholder="e.g., Amy Lloyd">
+          <p style="font-size:11px;color:var(--grey-400);margin-top:4px;">Pre-fills on every match result — change it there instead if just one match needs a different person.</p>
+        </div>
         <div class="form-group" style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;">
           <div>
             <label style="display:block;margin-bottom:4px;">Primary Colour</label>
@@ -920,14 +991,34 @@ async function loadResults() {
   const data = await sbFetch('knights_match_results?select=*');
   results = {};
   data.forEach(r => {
-    results[r.fixture_id] = { knights: r.knights_goals, opponent: r.opponent_goals, potm: r.player_of_match, goalkeeper: r.goalkeeper, published: r.published, narrative: r.narrative || null };
+    results[r.fixture_id] = {
+      knights: r.knights_goals, opponent: r.opponent_goals, potm: r.player_of_match,
+      goalkeeper: r.goalkeeper, published: r.published, narrative: r.narrative || null,
+      // Matchday report fields — carried through on every live/admin save so
+      // a quick score correction never silently wipes them.
+      refereeName: r.referee_name || null,
+      refereeScore: r.referee_score ?? null,
+      coachesBehaviour: r.coaches_behaviour ?? null,
+      parentsBehaviour: r.parents_behaviour ?? null,
+      playersBehaviour: r.players_behaviour ?? null,
+      respectPerson: r.respect_person || null,
+      pitchType: r.pitch_type || null,
+      pitchCondition: r.pitch_condition || null
+    };
   });
 
   const goalData = await sbFetch('knights_goal_scorers?select=*');
   goalScorers = {};
   goalData.forEach(g => {
     if (!goalScorers[g.fixture_id]) goalScorers[g.fixture_id] = [];
-    goalScorers[g.fixture_id].push({ player: g.player_name, goals: g.goals, minute: g.minute || null });
+    goalScorers[g.fixture_id].push({ player: g.player_name, goals: g.goals, minute: g.minute || null, penalty: g.penalty || false });
+  });
+
+  const oppGoalData = await sbFetch('knights_opponent_goals?select=*');
+  opponentGoals = {};
+  oppGoalData.forEach(g => {
+    if (!opponentGoals[g.fixture_id]) opponentGoals[g.fixture_id] = [];
+    opponentGoals[g.fixture_id].push({ minute: g.minute || null, penalty: g.penalty || false });
   });
 }
 
@@ -1878,6 +1969,7 @@ function prefillConfigForm() {
   set('cfgSponsor2Name', teamConfig.sponsor2_name);
   set('cfgSponsor2Url',  teamConfig.sponsor2_url);
   set('cfgClubUrl',    teamConfig.club_url);
+  set('cfgRespectPerson', teamConfig.respect_person_default);
   set('cfgPrimary',    teamConfig.primary_colour);
   set('cfgAccent',     teamConfig.accent_colour);
 }
@@ -1891,6 +1983,7 @@ async function saveConfig() {
     { key: 'sponsor2_name',  value: document.getElementById('cfgSponsor2Name').value.trim() },
     { key: 'sponsor2_url',   value: document.getElementById('cfgSponsor2Url').value.trim() },
     { key: 'club_url',       value: document.getElementById('cfgClubUrl').value.trim() },
+    { key: 'respect_person_default', value: document.getElementById('cfgRespectPerson').value.trim() },
     { key: 'primary_colour', value: document.getElementById('cfgPrimary').value },
     { key: 'accent_colour',  value: document.getElementById('cfgAccent').value },
   ];
@@ -2178,6 +2271,17 @@ function loadMatchForResult() {
   document.getElementById('goalkeeperSelect').value = res.goalkeeper || defaultGoalkeeper(matchId);
   renderAdminAttendance(matchId);
 
+  // Matchday report fields. Respect Person falls back to the Team Settings
+  // default only when this match has no value of its own saved yet.
+  document.getElementById('refRefereeName').value = res.refereeName || '';
+  document.getElementById('refPitchType').value = res.pitchType || '';
+  document.getElementById('refPitchCondition').value = res.pitchCondition || '';
+  document.getElementById('refRespectPerson').value = res.respectPerson || teamConfig.respect_person_default || '';
+  document.getElementById('refRefereeScore').value = res.refereeScore ?? '';
+  document.getElementById('refCoachesBehaviour').value = res.coachesBehaviour ?? '';
+  document.getElementById('refParentsBehaviour').value = res.parentsBehaviour ?? '';
+  document.getElementById('refPlayersBehaviour').value = res.playersBehaviour ?? '';
+
   // Show a status label if this is already a saved draft
   const existingLabel = document.getElementById('draftStatusLabel');
   if (existingLabel) existingLabel.remove();
@@ -2198,10 +2302,17 @@ function loadMatchForResult() {
   const scorers = goalScorers[matchId] || [];
   const list = document.getElementById('goalScorersList');
   list.innerHTML = '';
-  scorers.forEach(s => addGoalScorerInput(s.player, s.goals, s.minute));
+  scorers.forEach(s => addGoalScorerInput(s.player, s.goals, s.minute, s.penalty));
+
+  const oppGoals = opponentGoals[matchId] || [];
+  const oppList = document.getElementById('opponentGoalsList');
+  oppList.innerHTML = '';
+  oppGoals.forEach(g => addOpponentGoalInput(g.minute, g.penalty));
+
+  renderMatchTimeline(matchId);
 }
 
-function addGoalScorerInput(playerName, goals, minute) {
+function addGoalScorerInput(playerName, goals, minute, penalty) {
   const list = document.getElementById('goalScorersList');
   const div = document.createElement('div');
   div.className = 'goal-inputs';
@@ -2252,6 +2363,15 @@ function addGoalScorerInput(playerName, goals, minute) {
     if (minuteSel.value) lastGoalMinute = parseInt(minuteSel.value);
   });
 
+  const penLabel = document.createElement('label');
+  penLabel.className = 'penalty-check';
+  penLabel.style.cssText = 'display:flex;align-items:center;gap:3px;font-size:11px;color:var(--grey-600);white-space:nowrap;';
+  const penInput = document.createElement('input');
+  penInput.type = 'checkbox';
+  penInput.checked = !!penalty;
+  penLabel.appendChild(penInput);
+  penLabel.appendChild(document.createTextNode('Pen'));
+
   const removeBtn = document.createElement('button');
   removeBtn.className = 'btn';
   removeBtn.style.padding = '6px 10px';
@@ -2261,8 +2381,75 @@ function addGoalScorerInput(playerName, goals, minute) {
   div.appendChild(select);
   div.appendChild(input);
   div.appendChild(minuteSel);
+  div.appendChild(penLabel);
   div.appendChild(removeBtn);
   list.appendChild(div);
+}
+
+function addOpponentGoalInput(minute, penalty) {
+  const list = document.getElementById('opponentGoalsList');
+  const div = document.createElement('div');
+  div.className = 'goal-inputs';
+
+  // Minute dropdown — same defaulting behaviour as the Fareham scorer list
+  const defaultMinute = minute || Math.min(lastGoalMinute + 2, 50);
+  const minuteSel = document.createElement('select');
+  minuteSel.style.width = '62px';
+  minuteSel.title = 'Approximate minute (optional)';
+  const blankMin = document.createElement('option');
+  blankMin.value = '';
+  blankMin.textContent = 'Min';
+  minuteSel.appendChild(blankMin);
+  for (let m = 1; m <= 50; m++) {
+    const opt = document.createElement('option');
+    opt.value = m;
+    opt.textContent = m + '\'';
+    if (m === defaultMinute) opt.selected = true;
+    minuteSel.appendChild(opt);
+  }
+
+  const penLabel = document.createElement('label');
+  penLabel.style.cssText = 'display:flex;align-items:center;gap:3px;font-size:11px;color:var(--grey-600);white-space:nowrap;';
+  const penInput = document.createElement('input');
+  penInput.type = 'checkbox';
+  penInput.checked = !!penalty;
+  penLabel.appendChild(penInput);
+  penLabel.appendChild(document.createTextNode('Pen'));
+
+  const removeBtn = document.createElement('button');
+  removeBtn.className = 'btn';
+  removeBtn.style.padding = '6px 10px';
+  removeBtn.innerHTML = icon('close');
+  removeBtn.onclick = function() { div.remove(); };
+
+  div.appendChild(minuteSel);
+  div.appendChild(penLabel);
+  div.appendChild(removeBtn);
+  list.appendChild(div);
+}
+
+// Merges Fareham's goal scorers and the opponent's goal times into one
+// chronological list, for reading straight off into the Matchday report.
+// Uses the in-memory (last loaded/saved) state, not the unsaved form —
+// save the result first so it reflects everything just entered.
+function renderMatchTimeline(fixtureId) {
+  const el = document.getElementById('matchTimeline');
+  if (!el) return;
+  const teamName = teamConfig.team_name || 'Fareham';
+  const events = [];
+  (goalScorers[fixtureId] || []).forEach(s => {
+    events.push({ minute: s.minute, penalty: s.penalty, label: teamName + ' — ' + s.player + (s.penalty ? ' (pen)' : '') });
+  });
+  (opponentGoals[fixtureId] || []).forEach(g => {
+    events.push({ minute: g.minute, penalty: g.penalty, label: 'Opponent' + (g.penalty ? ' (pen)' : '') });
+  });
+  if (events.length === 0) { el.innerHTML = ''; return; }
+  events.sort((a, b) => (a.minute ?? 999) - (b.minute ?? 999));
+  const rows = events.map(e => '<div style="display:flex;gap:8px;padding:4px 0;border-bottom:1px solid var(--grey-100);font-size:13px;">' +
+    '<span style="color:var(--grey-400);min-width:32px;">' + (e.minute ? e.minute + '\'' : '—') + '</span>' +
+    '<span>' + e.label + '</span></div>').join('');
+  el.innerHTML = '<h3 style="margin-bottom:8px;">Match Timeline</h3>' +
+    '<p style="font-size:11px;color:var(--grey-400);margin-bottom:6px;">From the last save — reflects everything entered above once saved.</p>' + rows;
 }
 
 async function addFixture() {
@@ -2322,11 +2509,25 @@ async function addFixture() {
 async function saveResult(published = false) {
   const matchId = parseInt(document.getElementById('matchSelect').value);
   const knightsGoals = parseInt(document.getElementById('knightsGoals').value) || 0;
-  const opponentGoals = parseInt(document.getElementById('opponentGoals').value) || 0;
+  const opponentGoalsCount = parseInt(document.getElementById('opponentGoals').value) || 0;
   const potm = document.getElementById('potmSelect').value || null;
   const goalkeeper = document.getElementById('goalkeeperSelect').value || null;
   const narrativeInput = document.getElementById('narrativeInput');
   const narrative = narrativeInput && narrativeInput.value.trim() ? narrativeInput.value.trim() : null;
+
+  // Matchday report fields
+  const refereeName = document.getElementById('refRefereeName').value.trim() || null;
+  const pitchType = document.getElementById('refPitchType').value || null;
+  const pitchCondition = document.getElementById('refPitchCondition').value || null;
+  const respectPerson = document.getElementById('refRespectPerson').value.trim() || null;
+  const refereeScoreVal = document.getElementById('refRefereeScore').value;
+  const coachesBehaviourVal = document.getElementById('refCoachesBehaviour').value;
+  const parentsBehaviourVal = document.getElementById('refParentsBehaviour').value;
+  const playersBehaviourVal = document.getElementById('refPlayersBehaviour').value;
+  const refereeScore = refereeScoreVal !== '' ? parseInt(refereeScoreVal) : null;
+  const coachesBehaviour = coachesBehaviourVal !== '' ? parseInt(coachesBehaviourVal) : null;
+  const parentsBehaviour = parentsBehaviourVal !== '' ? parseInt(parentsBehaviourVal) : null;
+  const playersBehaviour = playersBehaviourVal !== '' ? parseInt(playersBehaviourVal) : null;
 
   const scorerInputs = document.querySelectorAll('#goalScorersList .goal-inputs');
   const scorers = [];
@@ -2335,18 +2536,35 @@ async function saveResult(published = false) {
     const player = selects[0].value;
     const goals = parseInt(inp.querySelector('input').value) || 0;
     const minute = selects[1] && selects[1].value ? parseInt(selects[1].value) : null;
-    if (player && goals > 0) scorers.push({ fixture_id: matchId, player_name: player, goals, minute });
+    const penalty = inp.querySelector('input[type="checkbox"]').checked;
+    if (player && goals > 0) scorers.push({ fixture_id: matchId, player_name: player, goals, minute, penalty });
+  });
+
+  const oppGoalInputs = document.querySelectorAll('#opponentGoalsList .goal-inputs');
+  const oppGoalRows = [];
+  oppGoalInputs.forEach(inp => {
+    const select = inp.querySelector('select');
+    const minute = select && select.value ? parseInt(select.value) : null;
+    const penalty = inp.querySelector('input[type="checkbox"]').checked;
+    oppGoalRows.push({ fixture_id: matchId, minute, penalty });
   });
 
   try {
     // Delete existing result and goal scorers
     await sbFetch('knights_match_results?fixture_id=eq.' + matchId, { method: 'DELETE' });
     await sbFetch('knights_goal_scorers?fixture_id=eq.' + matchId, { method: 'DELETE' });
+    await sbFetch('knights_opponent_goals?fixture_id=eq.' + matchId, { method: 'DELETE' });
 
     // Insert new result
     await sbFetch('knights_match_results', {
       method: 'POST',
-      body: JSON.stringify([{ fixture_id: matchId, knights_goals: knightsGoals, opponent_goals: opponentGoals, player_of_match: potm, goalkeeper, published, narrative }])
+      body: JSON.stringify([{
+        fixture_id: matchId, knights_goals: knightsGoals, opponent_goals: opponentGoalsCount,
+        player_of_match: potm, goalkeeper, published, narrative,
+        referee_name: refereeName, referee_score: refereeScore,
+        coaches_behaviour: coachesBehaviour, parents_behaviour: parentsBehaviour, players_behaviour: playersBehaviour,
+        respect_person: respectPerson, pitch_type: pitchType, pitch_condition: pitchCondition
+      }])
     });
 
     // Insert goal scorers
@@ -2357,11 +2575,19 @@ async function saveResult(published = false) {
       });
     }
 
+    // Insert opponent goal times
+    if (oppGoalRows.length > 0) {
+      await sbFetch('knights_opponent_goals', {
+        method: 'POST',
+        body: JSON.stringify(oppGoalRows)
+      });
+    }
+
     // Record a score snapshot on every draft save so we can build a narrative
     if (!published) {
       await sbFetch('knights_score_snapshots', {
         method: 'POST',
-        body: JSON.stringify([{ fixture_id: matchId, knights_goals: knightsGoals, opponent_goals: opponentGoals }])
+        body: JSON.stringify([{ fixture_id: matchId, knights_goals: knightsGoals, opponent_goals: opponentGoalsCount }])
       });
     }
 
@@ -2487,6 +2713,22 @@ function resetClock() {
 }
 
 
+// Matchday-report fields carried through on every quick live save, so a
+// score correction or goal tap never wipes out details already entered in
+// the Matchday Report section of the full form.
+function matchdayFieldsFrom(res) {
+  return {
+    referee_name: res.refereeName || null,
+    referee_score: res.refereeScore ?? null,
+    coaches_behaviour: res.coachesBehaviour ?? null,
+    parents_behaviour: res.parentsBehaviour ?? null,
+    players_behaviour: res.playersBehaviour ?? null,
+    respect_person: res.respectPerson || null,
+    pitch_type: res.pitchType || null,
+    pitch_condition: res.pitchCondition || null
+  };
+}
+
 async function quickScore(fixtureId, kDelta, oDelta) {
   const res = results[fixtureId];
   if (!res) return;
@@ -2498,25 +2740,39 @@ async function quickScore(fixtureId, kDelta, oDelta) {
   if (oEl) oEl.textContent = newO;
 
   // Undoing a Knights goal (the − button next to our score) also drops the
-  // most recently added scorer entry, so a wrongly-tapped scorer can be
+  // most recently added scorer entry, and undoing an opponent goal drops
+  // their most recently added goal time, so a wrongly-tapped goal can be
   // corrected in one tap during the match, without needing the full form.
   const dropLastScorer = kDelta < 0;
+  const dropLastOppGoal = oDelta < 0;
   const existingScorers = goalScorers[fixtureId] || [];
   const updatedScorers = dropLastScorer && existingScorers.length > 0
     ? existingScorers.slice(0, -1)
     : existingScorers;
+  const existingOppGoals = opponentGoals[fixtureId] || [];
+  const updatedOppGoals = dropLastOppGoal && existingOppGoals.length > 0
+    ? existingOppGoals.slice(0, -1)
+    : existingOppGoals;
 
   try {
     await sbFetch('knights_match_results?fixture_id=eq.' + fixtureId, { method: 'DELETE' });
     await sbFetch('knights_match_results', { method: 'POST',
       body: JSON.stringify([{ fixture_id: fixtureId, knights_goals: newK, opponent_goals: newO,
         player_of_match: res.potm||null,
-        goalkeeper: res.goalkeeper||null, published: false, narrative: res.narrative||null }]) });
+        goalkeeper: res.goalkeeper||null, published: false, narrative: res.narrative||null,
+        ...matchdayFieldsFrom(res) }]) });
     if (dropLastScorer) {
       await sbFetch('knights_goal_scorers?fixture_id=eq.' + fixtureId, { method: 'DELETE' });
       if (updatedScorers.length > 0) {
         await sbFetch('knights_goal_scorers', { method: 'POST',
-          body: JSON.stringify(updatedScorers.map(s => ({ fixture_id: fixtureId, player_name: s.player, goals: s.goals, minute: s.minute || null }))) });
+          body: JSON.stringify(updatedScorers.map(s => ({ fixture_id: fixtureId, player_name: s.player, goals: s.goals, minute: s.minute || null, penalty: s.penalty || false }))) });
+      }
+    }
+    if (dropLastOppGoal) {
+      await sbFetch('knights_opponent_goals?fixture_id=eq.' + fixtureId, { method: 'DELETE' });
+      if (updatedOppGoals.length > 0) {
+        await sbFetch('knights_opponent_goals', { method: 'POST',
+          body: JSON.stringify(updatedOppGoals.map(g => ({ fixture_id: fixtureId, minute: g.minute || null, penalty: g.penalty || false }))) });
       }
     }
     await sbFetch('knights_score_snapshots', { method: 'POST',
@@ -2529,6 +2785,7 @@ async function quickScore(fixtureId, kDelta, oDelta) {
 async function quickAddGoal(fixtureId) {
   const select = document.getElementById('quickScorerSelect');
   const minuteSel = document.getElementById('quickMinuteSelect');
+  const penaltyChk = document.getElementById('quickPenalty');
   const player = select ? select.value : '';
   // Auto-fill from clock if running, otherwise use manual selection
   const minute = clockRunning
@@ -2536,6 +2793,7 @@ async function quickAddGoal(fixtureId) {
     : (minuteSel && minuteSel.value ? parseInt(minuteSel.value) : null);
   if (!player) { showToast('Select a scorer first', true); return; }
   if (minute) lastGoalMinute = minute;
+  const penalty = penaltyChk ? penaltyChk.checked : false;
   const res = results[fixtureId];
   if (!res) return;
   const newK = res.knights + 1;
@@ -2544,7 +2802,7 @@ async function quickAddGoal(fixtureId) {
   // player scoring more than once in a match gets each goal's own time
   // instead of the whole row's minute being overwritten by the latest one.
   const existing = goalScorers[fixtureId] || [];
-  const updatedScorers = [...existing, { player, goals: 1, minute }];
+  const updatedScorers = [...existing, { player, goals: 1, minute, penalty }];
   const kEl = document.getElementById('liveK');
   if (kEl) kEl.textContent = newK;
   try {
@@ -2552,23 +2810,65 @@ async function quickAddGoal(fixtureId) {
     await sbFetch('knights_match_results', { method: 'POST',
       body: JSON.stringify([{ fixture_id: fixtureId, knights_goals: newK, opponent_goals: res.opponent,
         player_of_match: res.potm||null,
-        goalkeeper: res.goalkeeper||null, published: false, narrative: res.narrative||null }]) });
+        goalkeeper: res.goalkeeper||null, published: false, narrative: res.narrative||null,
+        ...matchdayFieldsFrom(res) }]) });
     await sbFetch('knights_goal_scorers?fixture_id=eq.' + fixtureId, { method: 'DELETE' });
     if (updatedScorers.length > 0) {
       await sbFetch('knights_goal_scorers', { method: 'POST',
-        body: JSON.stringify(updatedScorers.map(s => ({ fixture_id: fixtureId, player_name: s.player, goals: s.goals, minute: s.minute || null }))) });
+        body: JSON.stringify(updatedScorers.map(s => ({ fixture_id: fixtureId, player_name: s.player, goals: s.goals, minute: s.minute || null, penalty: s.penalty || false }))) });
     }
     await sbFetch('knights_score_snapshots', { method: 'POST',
       body: JSON.stringify([{ fixture_id: fixtureId, knights_goals: newK, opponent_goals: res.opponent }]) });
     await loadResults();
     renderFixtures();
     if (select) select.value = '';
+    if (penaltyChk) penaltyChk.checked = false;
     // Advance the minute dropdown to last+2
     if (minuteSel && minute) {
       const next = Math.min(minute + 2, 50);
       minuteSel.value = next;
     }
-    showToast(player + (minute ? ' ' + minute + '\'' : '') + ' goal!');
+    showToast(player + (minute ? ' ' + minute + '\'' : '') + (penalty ? ' (pen)' : '') + ' goal!');
+  } catch(e) { showToast('Error: ' + e.message, true); }
+}
+
+async function quickAddOpponentGoal(fixtureId) {
+  const minuteSel = document.getElementById('quickOppMinuteSelect');
+  const penaltyChk = document.getElementById('quickOppPenalty');
+  const minute = clockRunning
+    ? clockMinute()
+    : (minuteSel && minuteSel.value ? parseInt(minuteSel.value) : null);
+  if (minute) lastGoalMinute = minute;
+  const penalty = penaltyChk ? penaltyChk.checked : false;
+  const res = results[fixtureId];
+  if (!res) return;
+  const newO = res.opponent + 1;
+  const existing = opponentGoals[fixtureId] || [];
+  const updatedOppGoals = [...existing, { minute, penalty }];
+  const oEl = document.getElementById('liveO');
+  if (oEl) oEl.textContent = newO;
+  try {
+    await sbFetch('knights_match_results?fixture_id=eq.' + fixtureId, { method: 'DELETE' });
+    await sbFetch('knights_match_results', { method: 'POST',
+      body: JSON.stringify([{ fixture_id: fixtureId, knights_goals: res.knights, opponent_goals: newO,
+        player_of_match: res.potm||null,
+        goalkeeper: res.goalkeeper||null, published: false, narrative: res.narrative||null,
+        ...matchdayFieldsFrom(res) }]) });
+    await sbFetch('knights_opponent_goals?fixture_id=eq.' + fixtureId, { method: 'DELETE' });
+    if (updatedOppGoals.length > 0) {
+      await sbFetch('knights_opponent_goals', { method: 'POST',
+        body: JSON.stringify(updatedOppGoals.map(g => ({ fixture_id: fixtureId, minute: g.minute || null, penalty: g.penalty || false }))) });
+    }
+    await sbFetch('knights_score_snapshots', { method: 'POST',
+      body: JSON.stringify([{ fixture_id: fixtureId, knights_goals: res.knights, opponent_goals: newO }]) });
+    await loadResults();
+    renderFixtures();
+    if (penaltyChk) penaltyChk.checked = false;
+    if (minuteSel && minute) {
+      const next = Math.min(minute + 2, 50);
+      minuteSel.value = next;
+    }
+    showToast('Opponent goal' + (minute ? ' ' + minute + '\'' : '') + (penalty ? ' (pen)' : ''));
   } catch(e) { showToast('Error: ' + e.message, true); }
 }
 
@@ -2580,7 +2880,8 @@ async function quickPublish(fixtureId) {
     await sbFetch('knights_match_results', { method: 'POST',
       body: JSON.stringify([{ fixture_id: fixtureId, knights_goals: res.knights, opponent_goals: res.opponent,
         player_of_match: res.potm||null,
-        goalkeeper: res.goalkeeper||null, published: true, narrative: res.narrative||null }]) });
+        goalkeeper: res.goalkeeper||null, published: true, narrative: res.narrative||null,
+        ...matchdayFieldsFrom(res) }]) });
     await loadResults();
     await loadSnapshots();
     renderFixtures();
