@@ -751,6 +751,7 @@ async function renderAdminContent(email) {
 
         <h3 style="margin-top:20px;margin-bottom:4px;">Matchday Report</h3>
         <p style="font-size:12px;color:var(--grey-600);margin-bottom:8px;">Internal record for the Matchday submission — parents never see this.</p>
+        <p style="font-size:11px;color:var(--grey-400);margin-bottom:8px;">None of this is required to save or publish a result. The percentages below are Sam's call — use the Share Matchday Summary button after saving to send him everything else, and leave these blank unless you already know them.</p>
         <div class="form-group">
           <label>Referee Full Name</label>
           <input type="text" id="refRefereeName" placeholder="e.g., John Smith">
@@ -779,22 +780,22 @@ async function renderAdminContent(email) {
         </div>
         <div class="form-group" style="display:flex;gap:10px;flex-wrap:wrap;">
           <div style="flex:1;min-width:110px;">
-            <label style="display:block;margin-bottom:4px;">Referee Score %</label>
-            <input type="number" id="refRefereeScore" min="0" max="100" placeholder="0-100">
+            <label style="display:block;margin-bottom:4px;">Referee Score % <span style="font-weight:400;color:var(--grey-400);">(optional — Sam's call)</span></label>
+            <input type="number" id="refRefereeScore" min="0" max="100" placeholder="Sam completes in Matchday">
           </div>
           <div style="flex:1;min-width:110px;">
-            <label style="display:block;margin-bottom:4px;">Coaches Behaviour %</label>
-            <input type="number" id="refCoachesBehaviour" min="0" max="100" placeholder="0-100">
+            <label style="display:block;margin-bottom:4px;">Coaches Behaviour % <span style="font-weight:400;color:var(--grey-400);">(optional — Sam's call)</span></label>
+            <input type="number" id="refCoachesBehaviour" min="0" max="100" placeholder="Sam completes in Matchday">
           </div>
         </div>
         <div class="form-group" style="display:flex;gap:10px;flex-wrap:wrap;">
           <div style="flex:1;min-width:110px;">
-            <label style="display:block;margin-bottom:4px;">Parents Behaviour %</label>
-            <input type="number" id="refParentsBehaviour" min="0" max="100" placeholder="0-100">
+            <label style="display:block;margin-bottom:4px;">Parents Behaviour % <span style="font-weight:400;color:var(--grey-400);">(optional — Sam's call)</span></label>
+            <input type="number" id="refParentsBehaviour" min="0" max="100" placeholder="Sam completes in Matchday">
           </div>
           <div style="flex:1;min-width:110px;">
-            <label style="display:block;margin-bottom:4px;">Players Behaviour %</label>
-            <input type="number" id="refPlayersBehaviour" min="0" max="100" placeholder="0-100">
+            <label style="display:block;margin-bottom:4px;">Players Behaviour % <span style="font-weight:400;color:var(--grey-400);">(optional — Sam's call)</span></label>
+            <input type="number" id="refPlayersBehaviour" min="0" max="100" placeholder="Sam completes in Matchday">
           </div>
         </div>
 
@@ -804,6 +805,7 @@ async function renderAdminContent(email) {
         </div>
       </div>
       <button id="adminShareBtn" style="display:none;margin-top:12px;background:none;border:1.5px solid var(--grey-200);border-radius:8px;padding:10px 16px;font-size:13px;font-weight:600;color:var(--grey-600);cursor:pointer;font-family:Inter,sans-serif;width:100%;" onclick="shareCurrentResult()">${icon('share')} Share Result</button>
+      <button id="matchdayShareBtn" style="display:none;margin-top:8px;background:none;border:1.5px solid var(--grey-200);border-radius:8px;padding:10px 16px;font-size:13px;font-weight:600;color:var(--grey-600);cursor:pointer;font-family:Inter,sans-serif;width:100%;" onclick="shareCurrentMatchdaySummary()">${icon('share')} Share Matchday Summary (for Sam)</button>
     </div>
 
 
@@ -1420,6 +1422,64 @@ async function shareResult(fixtureId) {
   }
 }
 
+// Builds a WhatsApp-friendly Matchday summary for the coach — the raw match
+// data he needs to complete the league's Matchday submission himself
+// (goal times for both teams in order, MOM, referee, pitch, Respect Person).
+// Deliberately leaves out the percentages: Sam scores those directly in the
+// Matchday app, so they're optional placeholders in this app and never
+// block this summary or publishing the result to parents.
+function shareCurrentMatchdaySummary() {
+  const shareBtn = document.getElementById('matchdayShareBtn');
+  const fixtureId = shareBtn ? parseInt(shareBtn.dataset.fixtureId) : null;
+  if (fixtureId) shareMatchdaySummary(fixtureId);
+}
+
+async function shareMatchdaySummary(fixtureId) {
+  const f = fixtures.find(x => x.id === fixtureId);
+  const res = results[fixtureId];
+  if (!f || !res) return;
+
+  const teamName = teamConfig.team_name || 'Fareham';
+
+  let text = 'Matchday info — ' + teamName + ' v ' + f.opponent + ' (' + formatDate(f.date) + ')\n';
+  text += 'Score: ' + teamName + ' ' + res.knights + ' - ' + res.opponent + ' ' + f.opponent + '\n\n';
+
+  // Chronological goal timeline, both teams merged and sorted by minute —
+  // same event list as the admin Match Timeline, as plain text for WhatsApp.
+  const events = [];
+  (goalScorers[fixtureId] || []).forEach(s => {
+    events.push({ minute: s.minute, label: teamName + ' — ' + s.player + (s.penalty ? ' (pen)' : '') });
+  });
+  (opponentGoals[fixtureId] || []).forEach(g => {
+    events.push({ minute: g.minute, label: f.opponent + (g.penalty ? ' (pen)' : '') });
+  });
+  if (events.length > 0) {
+    events.sort((a, b) => (a.minute ?? 999) - (b.minute ?? 999));
+    text += 'Goals:\n';
+    events.forEach(e => { text += (e.minute ? e.minute + '\'' : '—') + ' ' + e.label + '\n'; });
+    text += '\n';
+  }
+
+  if (res.potm) text += 'Player of the Match: ' + res.potm + '\n';
+  if (res.refereeName) text += 'Referee: ' + res.refereeName + '\n';
+  if (res.pitchType || res.pitchCondition) {
+    text += 'Pitch: ' + [res.pitchType, res.pitchCondition].filter(Boolean).join(', ') + '\n';
+  }
+  if (res.respectPerson) text += 'Respect Person: ' + res.respectPerson + '\n';
+
+  text += '\n(Ref score / coaches / parents / players % — for Sam to add in Matchday)';
+
+  text = text.trim();
+
+  if (navigator.share) {
+    try { await navigator.share({ text }); } catch(e) {}
+  } else {
+    try {
+      await navigator.clipboard.writeText(text);
+      showToast('Matchday summary copied — paste into WhatsApp');
+    } catch(e) { showToast('Could not share or copy', true); }
+  }
+}
 
 function renderFixtures() {
   const container = document.getElementById('fixturesContent');
@@ -2259,11 +2319,18 @@ function loadMatchForResult() {
   const matchId = parseInt(document.getElementById('matchSelect').value);
   const form = document.getElementById('resultForm');
   const shareBtn = document.getElementById('adminShareBtn');
+  const matchdayShareBtn = document.getElementById('matchdayShareBtn');
   if (shareBtn) shareBtn.style.display = 'none';
+  if (matchdayShareBtn) matchdayShareBtn.style.display = 'none';
 
   if (!matchId) { form.style.display = 'none'; return; }
 
   form.style.display = 'block';
+  const hasResult = !!results[matchId];
+  if (matchdayShareBtn && hasResult) {
+    matchdayShareBtn.style.display = 'block';
+    matchdayShareBtn.dataset.fixtureId = matchId;
+  }
   const res = results[matchId] || {};
   document.getElementById('knightsGoals').value = res.knights || '';
   document.getElementById('opponentGoals').value = res.opponent || '';
@@ -2603,6 +2670,13 @@ async function saveResult(published = false) {
       shareBtn.style.display = published ? 'block' : 'none';
       if (published) shareBtn.dataset.fixtureId = matchId;
     }
+    // Matchday summary is for Sam, not parents, so it's available as soon as
+    // a draft is saved — it never waits on the result being published.
+    const matchdayShareBtn = document.getElementById('matchdayShareBtn');
+    if (matchdayShareBtn) {
+      matchdayShareBtn.style.display = 'block';
+      matchdayShareBtn.dataset.fixtureId = matchId;
+    }
     showToast(published ? 'Result published!' : 'Draft saved — not visible to parents yet');
   } catch(e) {
     showToast('Error: ' + e.message, true);
@@ -2887,10 +2961,15 @@ async function quickPublish(fixtureId) {
     renderFixtures();
     renderResults();
     renderPlayerStats();
+    const s = await supabaseClient.auth.getSession();
+    // renderAdminContent() rebuilds the whole admin panel's HTML, so the
+    // share buttons must be shown AFTER it runs — setting them before would
+    // just get overwritten by the fresh, hidden-by-default markup.
+    if (s.data.session) await renderAdminContent(s.data.session.user.email);
     const shareBtn = document.getElementById('adminShareBtn');
     if (shareBtn) { shareBtn.style.display = 'block'; shareBtn.dataset.fixtureId = fixtureId; }
-    const s = await supabaseClient.auth.getSession();
-    if (s.data.session) await renderAdminContent(s.data.session.user.email);
+    const matchdayShareBtn = document.getElementById('matchdayShareBtn');
+    if (matchdayShareBtn) { matchdayShareBtn.style.display = 'block'; matchdayShareBtn.dataset.fixtureId = fixtureId; }
     showToast('Result published!');
   } catch(e) { showToast('Error: ' + e.message, true); }
 }
