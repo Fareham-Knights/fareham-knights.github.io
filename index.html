@@ -821,18 +821,11 @@ async function renderAdminContent(email) {
       </div>
       <div class="form-group">
         <label>Meet Time (optional)</label>
-        <input type="time" id="fixtureMeetTime" onchange="
-          const mt = this.value;
-          if (!mt) return;
-          const [h, m] = mt.split(':').map(Number);
-          const ko = new Date(0, 0, 0, h, m + 30);
-          document.getElementById('fixtureTime').value =
-            String(ko.getHours()).padStart(2,'0') + ':' + String(ko.getMinutes()).padStart(2,'0');
-        ">
+        <input type="time" id="fixtureMeetTime" onchange="syncKickoffFromMeet('fixtureMeetTime','fixtureTime')">
       </div>
       <div class="form-group">
         <label>Kick-off Time</label>
-        <input type="time" id="fixtureTime">
+        <input type="time" id="fixtureTime" onchange="syncMeetFromKickoff('fixtureTime','fixtureMeetTime')">
       </div>
       <div class="form-group">
         <label>Home or Away?</label>
@@ -872,11 +865,11 @@ async function renderAdminContent(email) {
         </div>
         <div class="form-group">
           <label>Meet Time (optional)</label>
-          <input type="time" id="editFixtureMeetTime">
+          <input type="time" id="editFixtureMeetTime" onchange="syncKickoffFromMeet('editFixtureMeetTime','editFixtureTime')">
         </div>
         <div class="form-group">
           <label>Kick-off Time</label>
-          <input type="time" id="editFixtureTime">
+          <input type="time" id="editFixtureTime" onchange="syncMeetFromKickoff('editFixtureTime','editFixtureMeetTime')">
         </div>
         <div class="form-group">
           <label>Home or Away?</label>
@@ -2517,6 +2510,29 @@ function renderMatchTimeline(fixtureId) {
     '<span>' + e.label + '</span></div>').join('');
   el.innerHTML = '<h3 style="margin-bottom:8px;">Match Timeline</h3>' +
     '<p style="font-size:11px;color:var(--grey-400);margin-bottom:6px;">From the last save — reflects everything entered above once saved.</p>' + rows;
+}
+
+// Meet time and kick-off are 30 minutes apart almost every week. Editing
+// either field nudges the other to match, but only the field you just
+// touched fires this — so if you then manually correct the other field for
+// one of the rare fixtures where the gap really is different, that edit
+// sticks and nothing auto-overwrites it back.
+function timeStrPlusMinutes(timeStr, minutes) {
+  const [h, m] = timeStr.split(':').map(Number);
+  const d = new Date(0, 0, 0, h, m + minutes);
+  return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+}
+
+function syncKickoffFromMeet(meetInputId, kickoffInputId) {
+  const mt = document.getElementById(meetInputId).value;
+  if (!mt) return;
+  document.getElementById(kickoffInputId).value = timeStrPlusMinutes(mt, 30);
+}
+
+function syncMeetFromKickoff(kickoffInputId, meetInputId) {
+  const kt = document.getElementById(kickoffInputId).value;
+  if (!kt) return;
+  document.getElementById(meetInputId).value = timeStrPlusMinutes(kt, -30);
 }
 
 async function addFixture() {
