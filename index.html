@@ -471,7 +471,8 @@ const ICONS = {
   arrowLeft: '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>',
   star: '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" style="vertical-align:-0.15em"><path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.6 6.1 20.5l1.2-6.5L2.5 9.4l6.6-.9z"/></svg>',
   clock: '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>',
-  pin: '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em"><path d="M12 21s7-6.2 7-11.5A7 7 0 105 9.5C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.3"/></svg>'
+  pin: '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em"><path d="M12 21s7-6.2 7-11.5A7 7 0 105 9.5C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.3"/></svg>',
+  help: '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" style="vertical-align:-0.15em"><circle cx="12" cy="12" r="9"/><path d="M12 16.2v-1M12 13.3c0-1.6 2.2-1.9 2.2-3.7 0-1.2-1-2.1-2.2-2.1s-2.2.9-2.2 2.1"/></svg>'
 };
 function icon(name) { return ICONS[name] || ''; }
 
@@ -698,6 +699,29 @@ async function renderAdminContent(email) {
       <div style="font-size:12px;color:var(--grey-400);">${email}</div>
       <button onclick="signOutAdmin()" style="background:none;border:none;cursor:pointer;font-size:13px;font-weight:600;color:var(--grey-400);font-family:'Inter',sans-serif;padding:0;">Sign out</button>
     </div>
+
+    <div class="section" style="background:var(--grey-50);">
+      <button onclick="toggleHelpGuide()" style="background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:8px;padding:0;width:100%;text-align:left;">
+        <h3 style="margin:0;font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px;color:var(--crimson);">${icon('help')} Quick Guide</h3>
+        <span id="helpGuideArrow" style="font-size:11px;color:var(--grey-400);margin-left:auto;">${icon('chevronDown')} expand</span>
+      </button>
+      <div id="helpGuideBody" style="display:none;margin-top:14px;font-size:13px;color:var(--grey-700);line-height:1.5;">
+        <p style="margin:0 0 12px;color:var(--grey-500);font-size:12px;">Running matchday for the first time? Here's everything you need, start to finish.</p>
+
+        <p style="margin:0 0 4px;"><strong>1. Add a fixture</strong></p>
+        <p style="margin:0 0 12px;">Scroll down to <em>Add Fixture</em>. Fill in the opponent, date and kick-off time — Meet Time fills itself in 30 minutes earlier, so only change it if that week is different. Pick Home or Away, then tap <em>Add Fixture</em>. Got a date or time wrong afterwards? Use <em>Edit Fixture</em> below it to fix any fixture's details.</p>
+
+        <p style="margin:0 0 4px;"><strong>2. Match day — live scoring</strong></p>
+        <p style="margin:0 0 12px;">On the day, open Admin and tap <em>Go Live</em> on today's match card, then start the clock at kick-off. As goals go in, tap <em>+ Goal</em> for us or <em>+ Opp Goal</em> for them — pick the scorer, tick <em>Pen</em> if it was a penalty, and the minute fills in by itself from the clock. Tapped the wrong one? The − button next to each score undoes the last goal on that side. At full time, tap <em>Publish Full Time</em> to send the result straight to parents, or <em>Full form</em> first if you also want to add Player of the Match, the goalkeeper, or the Matchday Report (referee, pitch, Respect Person) before publishing.</p>
+
+        <p style="margin:0 0 4px;"><strong>3. Amend a result afterwards</strong></p>
+        <p style="margin:0 0 12px;">Go to <em>Enter Match Result</em> and select the match — everything already saved loads back in. Make your changes, then tap <em>Save Draft</em> (parents don't see this) or <em>Publish Result</em> (they do) again. It's always safe to re-save, it simply replaces what was there before.</p>
+
+        <p style="margin:0;"><strong>4. Add or remove a player</strong></p>
+        <p style="margin:0;">Tap the <em>Squad</em> section to expand it. To add someone, type their name and tap <em>Add Player</em>. To remove someone, find them in the list and tap <em>Mark Left</em> — that keeps their past stats intact and just takes them out of future selections. Only use <em>Delete</em> if a player was added by mistake and has no match history, since that removes them completely.</p>
+      </div>
+    </div>
+
     ${todayCard}
     ${liveCard}
 
@@ -1993,6 +2017,15 @@ async function exportSeasonData() {
 }
 
 // ── Admin: team settings ────────────────────────────────────────────────
+function toggleHelpGuide() {
+  const body = document.getElementById('helpGuideBody');
+  const arrow = document.getElementById('helpGuideArrow');
+  if (!body) return;
+  const open = body.style.display === 'none';
+  body.style.display = open ? 'block' : 'none';
+  if (arrow) arrow.innerHTML = (open ? icon('chevronUp') : icon('chevronDown')) + (open ? ' collapse' : ' expand');
+}
+
 function toggleSquadAdmin() {
   const body = document.getElementById('squadAdminBody');
   const arrow = document.getElementById('squadAdminArrow');
