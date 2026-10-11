@@ -2342,7 +2342,7 @@ function renderSquadAdminList() {
 
     html += '<tr style="' + (isActive ? '' : 'opacity:0.5;') + '">' +
       '<td><label title="Tap to add or change photo" style="display:inline-block;">' + thumb +
-      '<input type="file" accept="image/*" capture="environment" style="display:none;" onchange="handleSquadPhotoSelected(' + p.id + ', this)"></label></td>' +
+      '<input type="file" accept="image/*" style="display:none;" onchange="handleSquadPhotoSelected(' + p.id + ', this)"></label></td>' +
       '<td>' + p.name + '</td>' +
       '<td>' + statusLabel + '</td>' +
       '<td style="white-space:nowrap;">' + toggleBtn + deleteBtn + '</td></tr>';
