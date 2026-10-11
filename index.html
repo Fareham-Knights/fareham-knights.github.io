@@ -450,6 +450,17 @@
   </div>
 </div>
 
+<!-- Player detail popup (Squad tab) -->
+<div id="playerDetailModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:200;align-items:center;justify-content:center;" onclick="if(event.target===this) this.style.display='none'">
+  <div style="background:var(--white);border-radius:16px;padding:24px;max-width:320px;width:90%;text-align:center;margin:auto;">
+    <div id="playerDetailPhotoWrap" class="squad-photo-wrap" style="width:96px;margin:0 auto 12px;"></div>
+    <h3 id="playerDetailName" style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--ink);margin-bottom:2px;"></h3>
+    <div id="playerDetailShirt" style="font-size:13px;color:var(--grey-500);margin-bottom:18px;"></div>
+    <div id="playerDetailStats" style="display:flex;justify-content:center;gap:20px;margin-bottom:18px;"></div>
+    <button style="background:none;border:1.5px solid var(--grey-200);border-radius:8px;padding:10px 20px;font-size:13px;font-weight:600;color:var(--grey-600);cursor:pointer;font-family:Inter,sans-serif;" onclick="document.getElementById('playerDetailModal').style.display='none'">Close</button>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 // ── Same Supabase project as the Hurricanes tracker (free plan caps you at  ──
@@ -1785,7 +1796,7 @@ function renderSquadTab() {
   } else {
     html += '<div class="squad-grid">';
     active.forEach(p => {
-      html += '<div class="squad-card">' +
+      html += '<div class="squad-card" onclick="showPlayerDetail(' + p.id + ')" style="cursor:pointer;">' +
         '<div class="squad-photo-wrap">' + squadAvatarHTML(p, '', 'squad-avatar-fallback') + '</div>' +
         '<div class="squad-card-name">' + p.name + '</div>' +
         (p.shirt_number ? '<div class="squad-card-number">#' + p.shirt_number + '</div>' : '') +
@@ -1832,21 +1843,16 @@ function renderClubContactsCard() {
 }
 
 // ── Player Stats tab ────────────────────────────────────────────────────
-function renderPlayerStats() {
-  const container = document.getElementById('statsContent');
-
-  if (squad.length === 0) {
-    container.innerHTML = '<div class="empty-state">Squad list coming soon</div>';
-    return;
-  }
-
+// Shared by Player Stats and the Squad tab's player detail popup, so both
+// always agree on the numbers rather than keeping two separate counts.
+function computeSquadStats() {
   const playedFixtures = fixtures.filter(f => results[f.id] !== undefined && results[f.id].published === true);
 
   // Only players who've been recorded as goalkeeper ever show a CS count.
   // Everyone else gets a dash so outfield players aren't misleadingly shown as 0.
   const gkNames = new Set(playedFixtures.map(f => results[f.id].goalkeeper).filter(Boolean));
 
-  const stats = squad.map(p => {
+  return squad.map(p => {
     let played = 0, goals = 0, cleanSheets = 0, potm = 0;
     const hasBeenGK = gkNames.has(p.name);
     playedFixtures.forEach(f => {
@@ -1858,8 +1864,55 @@ function renderPlayerStats() {
         if (s.player === p.name && s.player !== 'Own Goal') goals += s.goals;
       });
     });
-    return { name: p.name, photo_url: p.photo_url, played, goals, cleanSheets, potm, hasBeenGK };
+    return { id: p.id, name: p.name, photo_url: p.photo_url, shirt_number: p.shirt_number, played, goals, cleanSheets, potm, hasBeenGK };
   });
+}
+
+function statTile(value, label, color) {
+  return '<div style="text-align:center;min-width:60px;">' +
+    '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:32px;color:' + color + ';line-height:1;">' + value + '</div>' +
+    '<div style="font-size:11px;color:var(--grey-500);margin-top:4px;">' + label + '</div></div>';
+}
+
+// Tapping a player on the Squad tab pops this up — appearances and POTM for
+// everyone, plus goals for outfield players or clean sheets instead for
+// anyone who's played in goal, same distinction Player Stats already draws.
+function showPlayerDetail(playerId) {
+  const s = computeSquadStats().find(x => x.id === playerId);
+  if (!s) return;
+
+  const photoWrap = document.getElementById('playerDetailPhotoWrap');
+  if (photoWrap) photoWrap.innerHTML = squadAvatarHTML(s, '', 'squad-avatar-fallback');
+
+  const nameEl = document.getElementById('playerDetailName');
+  if (nameEl) nameEl.textContent = s.name;
+
+  const shirtEl = document.getElementById('playerDetailShirt');
+  if (shirtEl) shirtEl.textContent = s.shirt_number ? ('Squad number ' + s.shirt_number) : '';
+
+  const statsEl = document.getElementById('playerDetailStats');
+  if (statsEl) {
+    const thirdStat = s.hasBeenGK
+      ? statTile(s.cleanSheets, 'Clean Sheets', 'var(--green)')
+      : statTile(s.goals, 'Goals', 'var(--crimson)');
+    statsEl.innerHTML =
+      statTile(s.played, 'Appearances', 'var(--ink)') +
+      thirdStat +
+      statTile(s.potm, 'POTM', 'var(--gold-dark)');
+  }
+
+  document.getElementById('playerDetailModal').style.display = 'flex';
+}
+
+function renderPlayerStats() {
+  const container = document.getElementById('statsContent');
+
+  if (squad.length === 0) {
+    container.innerHTML = '<div class="empty-state">Squad list coming soon</div>';
+    return;
+  }
+
+  const stats = computeSquadStats();
 
   stats.sort((a, b) => {
     let cmp;
