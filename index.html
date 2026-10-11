@@ -756,7 +756,7 @@ async function renderAdminContent(email) {
         <p style="margin:0 0 12px;">Go to <em>Enter Match Result</em> and select the match — everything already saved loads back in. Make your changes, then tap <em>Save Draft</em> (parents don't see this) or <em>Publish Result</em> (they do) again. It's always safe to re-save, it simply replaces what was there before.</p>
 
         <p style="margin:0;"><strong>4. Add or remove a player</strong></p>
-        <p style="margin:0;">Tap the <em>Squad</em> section to expand it. To add someone, type their name and tap <em>Add Player</em>. To remove someone, find them in the list and tap <em>Mark Left</em> — that keeps their past stats intact and just takes them out of future selections. Only use <em>Delete</em> if a player was added by mistake and has no match history, since that removes them completely. To add or change a player's photo, just tap their photo in this list and pick an image — it's resized automatically and shows on the Squad tab and Player Stats straight away.</p>
+        <p style="margin:0;">Tap the <em>Squad</em> section to expand it. To add someone, type their name and tap <em>Add Player</em>. To remove someone, find them in the list and tap <em>Mark Left</em> — that keeps their past stats intact and just takes them out of future selections. Only use <em>Delete</em> if a player was added by mistake and has no match history, since that removes them completely. To add or change a player's photo, just tap their photo in this list and pick an image — it's resized automatically and shows on the Squad tab and Player Stats straight away. Tap <em>Set GK</em> next to your regular goalkeeper's name so their clean sheets show correctly — stats only show "Clean Sheets" for whoever is marked this way, so if someone else fills in for a one-off match, it won't wrongly switch their stats over to goalkeeper mode.</p>
       </div>
     </div>
 
@@ -1806,13 +1806,14 @@ function renderClubContactsCard() {
 function computeSquadStats() {
   const playedFixtures = fixtures.filter(f => results[f.id] !== undefined && results[f.id].published === true);
 
-  // Only players who've been recorded as goalkeeper ever show a CS count.
-  // Everyone else gets a dash so outfield players aren't misleadingly shown as 0.
-  const gkNames = new Set(playedFixtures.map(f => results[f.id].goalkeeper).filter(Boolean));
-
   return squad.map(p => {
     let played = 0, goals = 0, cleanSheets = 0, potm = 0;
-    const hasBeenGK = gkNames.has(p.name);
+    // Only the player(s) explicitly marked as goalkeeper in the Squad admin
+    // list show a Clean Sheets stat. This is deliberately NOT inferred from
+    // "ever played in goal" — a one-off emergency fill-in (e.g. the regular
+    // keeper was injured) shouldn't flip someone's whole stats display over
+    // to clean sheets and hide their actual goals.
+    const hasBeenGK = p.is_goalkeeper === true;
     playedFixtures.forEach(f => {
       const res = results[f.id];
       if ((availability[f.id] || {})[p.id] !== 'no') played++;
@@ -1912,11 +1913,10 @@ function renderPlayerStats() {
 
 function exportStatsCSV() {
   const playedFixtures = fixtures.filter(f => results[f.id] !== undefined && results[f.id].published === true);
-  const gkNames = new Set(playedFixtures.map(f => results[f.id].goalkeeper).filter(Boolean));
 
   const stats = squad.map(p => {
     let played = 0, goals = 0, cleanSheets = 0, potm = 0;
-    const hasBeenGK = gkNames.has(p.name);
+    const hasBeenGK = p.is_goalkeeper === true;
     playedFixtures.forEach(f => {
       const res = results[f.id];
       if ((availability[f.id] || {})[p.id] !== 'no') played++;
@@ -1970,10 +1970,9 @@ function exportSeasonCSV() {
   rows.push('PLAYER STATS');
   rows.push('Player,Played,Goals,Clean Sheets,POTM');
   const playedFixtures = fixtures.filter(f => results[f.id] && results[f.id].published === true);
-  const gkNames = new Set(playedFixtures.map(f => results[f.id].goalkeeper).filter(Boolean));
   squad.forEach(p => {
     let played = 0, goals = 0, cleanSheets = 0, potm = 0;
-    const hasBeenGK = gkNames.has(p.name);
+    const hasBeenGK = p.is_goalkeeper === true;
     playedFixtures.forEach(f => {
       const res = results[f.id];
       if ((availability[f.id] || {})[p.id] !== 'no') played++;
@@ -2062,11 +2061,10 @@ async function exportSeasonData() {
 
     // Compute player stats summary (mirrors the Player Stats tab)
     const playedFixtures = rawFixtures.filter(f => resultsById[f.id]);
-    const gkNames = new Set(playedFixtures.map(f => resultsById[f.id].goalkeeper).filter(Boolean));
 
     const playerStats = rawSquad.map(p => {
       let played = 0, goals = 0, cleanSheets = 0, potm = 0;
-      const hasBeenGK = gkNames.has(p.name);
+      const hasBeenGK = p.is_goalkeeper === true;
       playedFixtures.forEach(f => {
         const res = resultsById[f.id];
         if ((availById[f.id] || {})[p.id] !== 'no') played++;
@@ -2410,7 +2408,7 @@ function renderSquadAdminList() {
     return;
   }
 
-  let html = '<table class="table"><tr><th>Photo</th><th>Name</th><th>#</th><th>Status</th><th></th></tr>';
+  let html = '<table class="table"><tr><th>Photo</th><th>Name</th><th>#</th><th>GK</th><th>Status</th><th></th></tr>';
   squadAdmin.forEach(p => {
     const isActive = p.active !== false;
     const statusLabel = isActive
@@ -2424,17 +2422,21 @@ function renderSquadAdminList() {
     const shirtInput = '<input type="number" min="1" value="' + (p.shirt_number != null ? p.shirt_number : '') +
       '" placeholder="—" style="width:48px;padding:4px;border:1.5px solid var(--grey-200);border-radius:6px;font-size:13px;text-align:center;" ' +
       'onchange="updateSquadShirtNumber(' + p.id + ', this)">';
+    const gkBtn = p.is_goalkeeper === true
+      ? '<button class="btn" title="Tap to unset" style="padding:4px 8px;font-size:11px;background:var(--green);" onclick="updateSquadIsGoalkeeper(' + p.id + ', false)">GK ✓</button>'
+      : '<button class="btn" title="Tap to mark as the goalkeeper" style="padding:4px 8px;font-size:11px;background:var(--grey-200);color:var(--ink);" onclick="updateSquadIsGoalkeeper(' + p.id + ', true)">Set GK</button>';
 
     html += '<tr style="' + (isActive ? '' : 'opacity:0.5;') + '">' +
       '<td><label title="Tap to add or change photo" style="display:inline-block;">' + thumb +
       '<input type="file" accept="image/*" style="display:none;" onchange="handleSquadPhotoSelected(' + p.id + ', this)"></label></td>' +
       '<td>' + p.name + '</td>' +
       '<td>' + shirtInput + '</td>' +
+      '<td>' + gkBtn + '</td>' +
       '<td>' + statusLabel + '</td>' +
       '<td style="white-space:nowrap;">' + toggleBtn + deleteBtn + '</td></tr>';
   });
   html += '</table>' +
-    '<p style="font-size:11px;color:var(--grey-400);margin-top:8px;">Tap a player\'s photo to add or replace it.</p>';
+    '<p style="font-size:11px;color:var(--grey-400);margin-top:8px;">Tap a player\'s photo to add or replace it. "Set GK" marks who\'s the regular goalkeeper for stats purposes — only they show clean sheets, so a one-off fill-in doesn\'t get wrongly tagged as the keeper.</p>';
   container.innerHTML = html;
 }
 
@@ -2483,6 +2485,23 @@ async function updateSquadShirtNumber(playerId, inputEl) {
     renderSquadTab();
     renderPlayerStats();
     showToast('Shirt number saved');
+  } catch(e) {
+    showToast('Error: ' + e.message, true);
+  }
+}
+
+async function updateSquadIsGoalkeeper(id, isGoalkeeper) {
+  try {
+    await sbFetch('knights_squad?id=eq.' + id, {
+      method: 'PATCH',
+      body: JSON.stringify({ is_goalkeeper: isGoalkeeper })
+    });
+    await loadSquadAdmin();
+    renderSquadAdminList();
+    await loadSquad();
+    renderSquadTab();
+    renderPlayerStats();
+    showToast(isGoalkeeper ? 'Marked as goalkeeper' : 'No longer marked as goalkeeper');
   } catch(e) {
     showToast('Error: ' + e.message, true);
   }
