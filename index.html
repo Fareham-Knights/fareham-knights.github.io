@@ -665,6 +665,11 @@ async function renderAdminContent(email) {
           <button onclick="skipClock(10)" style="padding:7px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.7);font-size:12px;cursor:pointer;font-family:Inter,sans-serif;">+10 min</button>
           <button onclick="resetClock()" style="padding:7px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.2);background:none;color:rgba(255,255,255,0.4);font-size:11px;cursor:pointer;font-family:Inter,sans-serif;">Reset</button>
         </div>
+        <div style="display:flex;justify-content:center;gap:6px;margin-top:10px;align-items:center;">
+          <input type="number" id="clockSetMinuteInput" min="0" max="90" placeholder="min" style="width:56px;padding:6px;border-radius:6px;border:1px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.1);color:#fff;font-size:12px;text-align:center;font-family:Inter,sans-serif;">
+          <button onclick="setClockMinute()" style="padding:6px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.8);font-size:11px;cursor:pointer;font-family:Inter,sans-serif;">Set clock to this minute</button>
+        </div>
+        <div style="font-size:10px;color:rgba(255,255,255,0.35);margin-top:4px;">Been away and the clock's wrong? Type the real minute and tap Set.</div>
       </div>
       <div style="display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:16px;">
         <div style="text-align:center;">
@@ -952,6 +957,10 @@ async function renderAdminContent(email) {
           <label>Name</label>
           <input type="text" id="squadName" placeholder="e.g., Alfie">
         </div>
+        <div class="form-group">
+          <label>Shirt Number (optional)</label>
+          <input type="number" id="squadShirtNumber" min="1" placeholder="e.g., 7">
+        </div>
         <button class="btn" onclick="addSquadPlayer()">Add Player</button>
       </div>
     </div>
@@ -998,6 +1007,22 @@ async function renderAdminContent(email) {
         <div class="form-group">
           <label>Club Contact URL</label>
           <input type="url" id="cfgClubUrl" placeholder="https://...">
+        </div>
+        <div class="form-group">
+          <label>Club Welfare Officer — Name</label>
+          <input type="text" id="cfgCwoName" placeholder="e.g., Ria">
+        </div>
+        <div class="form-group">
+          <label>Club Welfare Officer — Phone</label>
+          <input type="tel" id="cfgCwoPhone" placeholder="e.g., 07814744477">
+        </div>
+        <div class="form-group">
+          <label>Chairman — Name</label>
+          <input type="text" id="cfgChairmanName" placeholder="e.g., Paul">
+        </div>
+        <div class="form-group">
+          <label>Chairman — Phone</label>
+          <input type="tel" id="cfgChairmanPhone" placeholder="e.g., 07957503689">
         </div>
         <div class="form-group">
           <label>Respect Person (default)</label>
@@ -1753,20 +1778,57 @@ function renderSquadTab() {
   const container = document.getElementById('squadTabContent');
   if (!container) return;
   const active = squad.filter(p => p.active !== false);
+
+  let html = '<div class="section"><h3>Squad</h3>';
   if (active.length === 0) {
-    container.innerHTML = '<div class="empty-state">Squad list coming soon</div>';
-    return;
+    html += '<div class="empty-state">Squad list coming soon</div>';
+  } else {
+    html += '<div class="squad-grid">';
+    active.forEach(p => {
+      html += '<div class="squad-card">' +
+        '<div class="squad-photo-wrap">' + squadAvatarHTML(p, '', 'squad-avatar-fallback') + '</div>' +
+        '<div class="squad-card-name">' + p.name + '</div>' +
+        (p.shirt_number ? '<div class="squad-card-number">#' + p.shirt_number + '</div>' : '') +
+        '</div>';
+    });
+    html += '</div>';
   }
-  let html = '<div class="section"><h3>Squad</h3><div class="squad-grid">';
-  active.forEach(p => {
-    html += '<div class="squad-card">' +
-      '<div class="squad-photo-wrap">' + squadAvatarHTML(p, '', 'squad-avatar-fallback') + '</div>' +
-      '<div class="squad-card-name">' + p.name + '</div>' +
-      (p.shirt_number ? '<div class="squad-card-number">#' + p.shirt_number + '</div>' : '') +
-      '</div>';
-  });
-  html += '</div></div>';
+  html += '</div>';
+
+  html += renderClubContactsCard();
   container.innerHTML = html;
+}
+
+// Club Welfare Officer and Chairman numbers, set in Team Settings. Shown on
+// the Squad tab so parents always have a permanent, no-login way to reach
+// the club, without cluttering the header that shows on every other tab.
+// Each only appears once a number has actually been set.
+function renderClubContactsCard() {
+  const cwoName = teamConfig.cwo_name || '';
+  const cwoPhone = teamConfig.cwo_phone || '';
+  const chairmanName = teamConfig.chairman_name || '';
+  const chairmanPhone = teamConfig.chairman_phone || '';
+  if (!cwoPhone && !chairmanPhone) return '';
+
+  let html = '<div class="section" style="border-top:1px solid var(--grey-200);padding-top:16px;margin-top:8px;">' +
+    '<h3 style="margin-bottom:4px;">Club Contacts</h3>';
+
+  if (cwoPhone) {
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--grey-100);">' +
+      '<div><div style="font-weight:600;font-size:14px;">' + (cwoName || 'Welfare Officer') + '</div>' +
+      '<div style="font-size:12px;color:var(--grey-500);">Club Welfare Officer — for any welfare or safeguarding concern</div></div>' +
+      '<a href="tel:' + cwoPhone.replace(/\s+/g, '') + '" style="background:var(--crimson);color:#fff;padding:8px 14px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap;margin-left:10px;">Call</a>' +
+      '</div>';
+  }
+  if (chairmanPhone) {
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;">' +
+      '<div><div style="font-weight:600;font-size:14px;">' + (chairmanName || 'Chairman') + '</div>' +
+      '<div style="font-size:12px;color:var(--grey-500);">Club Chairman — for general club matters</div></div>' +
+      '<a href="tel:' + chairmanPhone.replace(/\s+/g, '') + '" style="background:var(--crimson);color:#fff;padding:8px 14px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap;margin-left:10px;">Call</a>' +
+      '</div>';
+  }
+  html += '</div>';
+  return html;
 }
 
 // ── Player Stats tab ────────────────────────────────────────────────────
@@ -2110,6 +2172,10 @@ function prefillConfigForm() {
   set('cfgSponsor2Name', teamConfig.sponsor2_name);
   set('cfgSponsor2Url',  teamConfig.sponsor2_url);
   set('cfgClubUrl',    teamConfig.club_url);
+  set('cfgCwoName',    teamConfig.cwo_name);
+  set('cfgCwoPhone',   teamConfig.cwo_phone);
+  set('cfgChairmanName', teamConfig.chairman_name);
+  set('cfgChairmanPhone', teamConfig.chairman_phone);
   set('cfgRespectPerson', teamConfig.respect_person_default);
   set('cfgPrimary',    teamConfig.primary_colour);
   set('cfgAccent',     teamConfig.accent_colour);
@@ -2124,6 +2190,10 @@ async function saveConfig() {
     { key: 'sponsor2_name',  value: document.getElementById('cfgSponsor2Name').value.trim() },
     { key: 'sponsor2_url',   value: document.getElementById('cfgSponsor2Url').value.trim() },
     { key: 'club_url',       value: document.getElementById('cfgClubUrl').value.trim() },
+    { key: 'cwo_name',       value: document.getElementById('cfgCwoName').value.trim() },
+    { key: 'cwo_phone',      value: document.getElementById('cfgCwoPhone').value.trim() },
+    { key: 'chairman_name',  value: document.getElementById('cfgChairmanName').value.trim() },
+    { key: 'chairman_phone', value: document.getElementById('cfgChairmanPhone').value.trim() },
     { key: 'respect_person_default', value: document.getElementById('cfgRespectPerson').value.trim() },
     { key: 'primary_colour', value: document.getElementById('cfgPrimary').value },
     { key: 'accent_colour',  value: document.getElementById('cfgAccent').value },
@@ -2135,6 +2205,7 @@ async function saveConfig() {
       body: JSON.stringify(entries)
     });
     await loadConfig();
+    renderSquadTab();
     showToast('Settings saved!');
   } catch(e) {
     showToast('Error: ' + e.message, true);
@@ -2328,7 +2399,7 @@ function renderSquadAdminList() {
     return;
   }
 
-  let html = '<table class="table"><tr><th>Photo</th><th>Name</th><th>Status</th><th></th></tr>';
+  let html = '<table class="table"><tr><th>Photo</th><th>Name</th><th>#</th><th>Status</th><th></th></tr>';
   squadAdmin.forEach(p => {
     const isActive = p.active !== false;
     const statusLabel = isActive
@@ -2339,11 +2410,15 @@ function renderSquadAdminList() {
       : '<button class="btn" style="padding:4px 8px;font-size:11px;background:var(--green);" onclick="togglePlayerActive(' + p.id + ', true)">Reinstate</button>';
     const deleteBtn = '<button class="btn" style="padding:4px 8px;font-size:11px;background:var(--red);margin-left:4px;" onclick="deleteSquadPlayer(' + p.id + ')">Delete</button>';
     const thumb = squadAvatarHTML(p, 'admin-thumb', 'admin-thumb-fallback');
+    const shirtInput = '<input type="number" min="1" value="' + (p.shirt_number != null ? p.shirt_number : '') +
+      '" placeholder="—" style="width:48px;padding:4px;border:1.5px solid var(--grey-200);border-radius:6px;font-size:13px;text-align:center;" ' +
+      'onchange="updateSquadShirtNumber(' + p.id + ', this)">';
 
     html += '<tr style="' + (isActive ? '' : 'opacity:0.5;') + '">' +
       '<td><label title="Tap to add or change photo" style="display:inline-block;">' + thumb +
       '<input type="file" accept="image/*" style="display:none;" onchange="handleSquadPhotoSelected(' + p.id + ', this)"></label></td>' +
       '<td>' + p.name + '</td>' +
+      '<td>' + shirtInput + '</td>' +
       '<td>' + statusLabel + '</td>' +
       '<td style="white-space:nowrap;">' + toggleBtn + deleteBtn + '</td></tr>';
   });
@@ -2354,15 +2429,19 @@ function renderSquadAdminList() {
 
 async function addSquadPlayer() {
   const name = document.getElementById('squadName').value.trim();
+  const shirtRaw = document.getElementById('squadShirtNumber').value.trim();
+  const shirt_number = shirtRaw === '' ? null : parseInt(shirtRaw);
   if (!name) { showToast('Enter a name', true); return; }
+  if (shirtRaw !== '' && (isNaN(shirt_number) || shirt_number < 1)) { showToast('Enter a valid shirt number', true); return; }
 
   try {
     await sbFetch('knights_squad', {
       method: 'POST',
-      body: JSON.stringify([{ name }])
+      body: JSON.stringify([{ name, shirt_number }])
     });
 
     document.getElementById('squadName').value = '';
+    document.getElementById('squadShirtNumber').value = '';
 
     await loadSquadAdmin();
     renderSquadAdminList();
@@ -2370,6 +2449,29 @@ async function addSquadPlayer() {
     renderSquadTab();
     renderPlayerStats();
     showToast('Player added!');
+  } catch(e) {
+    showToast('Error: ' + e.message, true);
+  }
+}
+
+async function updateSquadShirtNumber(playerId, inputEl) {
+  const raw = inputEl.value.trim();
+  const shirt_number = raw === '' ? null : parseInt(raw);
+  if (raw !== '' && (isNaN(shirt_number) || shirt_number < 1)) {
+    showToast('Enter a valid shirt number', true);
+    return;
+  }
+  try {
+    await sbFetch('knights_squad?id=eq.' + playerId, {
+      method: 'PATCH',
+      body: JSON.stringify({ shirt_number })
+    });
+    await loadSquadAdmin();
+    renderSquadAdminList();
+    await loadSquad();
+    renderSquadTab();
+    renderPlayerStats();
+    showToast('Shirt number saved');
   } catch(e) {
     showToast('Error: ' + e.message, true);
   }
@@ -2973,6 +3075,23 @@ function resetClock() {
   clockRunning = false;
   clearInterval(clockInterval);
   updateClockDisplay();
+}
+
+// Lets the admin correct the clock directly to the real match minute.
+// Needed because the phone's browser can suspend the page in the
+// background (screen lock, switching apps for a while), which wipes this
+// clock's in-memory state back to zero — so resuming with Start just
+// carries on from the wrong point rather than catching up to real time.
+function setClockMinute() {
+  const input = document.getElementById('clockSetMinuteInput');
+  if (!input) return;
+  const minutes = parseInt(input.value);
+  if (isNaN(minutes) || minutes < 0) { showToast('Enter a valid minute', true); return; }
+  clockElapsed = minutes * 60000;
+  if (clockRunning) clockStart = Date.now();
+  updateClockDisplay();
+  input.value = '';
+  showToast('Clock set to ' + minutes + "'");
 }
 
 
