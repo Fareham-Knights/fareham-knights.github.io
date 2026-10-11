@@ -948,6 +948,10 @@ async function renderAdminContent(email) {
           <label>Comments (optional)</label>
           <textarea id="editFixtureComments" rows="3" placeholder="e.g., Parking is £2 at the clubhouse, pitch is the astro behind the school" style="width:100%;padding:8px 12px;border:1.5px solid var(--grey-200);border-radius:6px;font-size:14px;font-family:'Inter',sans-serif;outline:none;resize:vertical;"></textarea>
         </div>
+        <div class="form-group">
+          <label>Match video link (optional)</label>
+          <input type="url" id="editFixtureVideoUrl" placeholder="Paste the Veo (or other) share link here once you've got it">
+        </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px;">
           <button class="btn" onclick="saveFixtureEdit()">Save Changes</button>
           <button class="btn" style="background:var(--red);" onclick="deleteFixture()">Delete Fixture</button>
@@ -1426,6 +1430,14 @@ function buildMatchCard(f) {
     locationLine = '<div class="match-scorers" style="grid-column: 1 / -1;"><a href="' + mapLink(f.location) + '" target="_blank" rel="noopener" style="color:var(--crimson);">' + icon('pin') + ' ' + f.location + '</a></div>';
   }
 
+  // Match video link — admin pastes this in via Edit Fixture once a Veo (or
+  // other) recording has been shared. Only shown once the match has been
+  // played, since there's nothing to watch before then.
+  let videoLine = '';
+  if (f.video_url && isPlayed) {
+    videoLine = '<div class="match-scorers" style="grid-column: 1 / -1;"><a href="' + f.video_url + '" target="_blank" rel="noopener" style="color:var(--crimson);font-weight:600;">' + icon('play') + ' Watch the match</a></div>';
+  }
+
   // "Who's coming?" hidden from public — managed by admin only
   const availabilitySection = '';
 
@@ -1441,6 +1453,7 @@ function buildMatchCard(f) {
     (!isPlayed ? buildNotesLine(f.comments, true) : '') +
     scorersLine +
     potmLine +
+    videoLine +
     availabilitySection +
     shareText +
     '</div>';
@@ -2329,6 +2342,7 @@ function loadFixtureForEdit() {
   document.getElementById('editFixtureHomeAway').value = f.home_away;
   document.getElementById('editFixtureLocation').value = f.location || '';
   document.getElementById('editFixtureComments').value = f.comments || '';
+  document.getElementById('editFixtureVideoUrl').value = f.video_url || '';
 }
 
 async function deleteFixture() {
@@ -2363,8 +2377,10 @@ async function saveFixtureEdit() {
   const homeAway = document.getElementById('editFixtureHomeAway').value;
   const location = document.getElementById('editFixtureLocation').value.trim() || null;
   const comments = document.getElementById('editFixtureComments').value.trim() || null;
+  const videoUrl = document.getElementById('editFixtureVideoUrl').value.trim() || null;
 
   if (!fixtureId || !opponent || !date || !time) { showToast('Fill in all fields', true); return; }
+  if (videoUrl && !/^https?:\/\//i.test(videoUrl)) { showToast('Video link should start with http:// or https://', true); return; }
 
   const kickoff = new Date(date + 'T' + time).toISOString();
   const meet = meetTime ? new Date(date + 'T' + meetTime).toISOString() : null;
@@ -2372,7 +2388,7 @@ async function saveFixtureEdit() {
   try {
     await sbFetch('knights_fixtures?id=eq.' + fixtureId, {
       method: 'PATCH',
-      body: JSON.stringify({ opponent, date, kickoff_time: kickoff, meet_time: meet, home_away: homeAway, location, comments })
+      body: JSON.stringify({ opponent, date, kickoff_time: kickoff, meet_time: meet, home_away: homeAway, location, comments, video_url: videoUrl })
     });
 
     await loadFixtures();
