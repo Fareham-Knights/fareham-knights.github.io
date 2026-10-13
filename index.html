@@ -361,8 +361,8 @@
     </div>
   </div>
   <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
-    <button onclick="shareApp()" title="Share app" aria-label="Share app" style="position:relative;z-index:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.6);width:38px;height:38px;border-radius:8px;font-size:16px;cursor:pointer;flex-shrink:0;"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5.5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="18.5" r="2.5"/><path d="M8.2 10.7l7.6-4.3M8.2 13.3l7.6 4.3"/></svg></button>
     <button onclick="switchTab('admin')" title="Manage" aria-label="Admin" style="position:relative;z-index:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.6);width:38px;height:38px;border-radius:8px;font-size:16px;cursor:pointer;flex-shrink:0;"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 13a7.6 7.6 0 000-2l2-1.4-2-3.4-2.3.6a7.6 7.6 0 00-1.7-1l-.4-2.4h-4l-.4 2.4a7.6 7.6 0 00-1.7 1l-2.3-.6-2 3.4L6.6 11a7.6 7.6 0 000 2l-2 1.4 2 3.4 2.3-.6a7.6 7.6 0 001.7 1l.4 2.4h4l.4-2.4a7.6 7.6 0 001.7-1l2.3.6 2-3.4z"/></svg></button>
+    <button onclick="document.getElementById('howToModal').style.display='flex'" title="How to use this app" aria-label="How to use this app" style="position:relative;z-index:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.6);width:38px;height:38px;border-radius:8px;font-size:16px;cursor:pointer;flex-shrink:0;"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 16.2v-1M12 13.3c0-1.6 2.2-1.9 2.2-3.7 0-1.2-1-2.1-2.2-2.1s-2.2.9-2.2 2.1"/></svg></button>
   </div>
 </header>
 <div class="main">
@@ -458,6 +458,28 @@
     <div id="playerDetailShirt" style="font-size:13px;color:var(--grey-500);margin-bottom:18px;"></div>
     <div id="playerDetailStats" style="display:flex;justify-content:center;gap:20px;margin-bottom:18px;"></div>
     <button style="background:none;border:1.5px solid var(--grey-200);border-radius:8px;padding:10px 20px;font-size:13px;font-weight:600;color:var(--grey-600);cursor:pointer;font-family:Inter,sans-serif;" onclick="document.getElementById('playerDetailModal').style.display='none'">Close</button>
+  </div>
+</div>
+
+<!-- Parent-facing "How to use this app" guide, opened from the header -->
+<div id="howToModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:200;align-items:center;justify-content:center;" onclick="if(event.target===this) this.style.display='none'">
+  <div style="background:var(--white);border-radius:16px;padding:24px;max-width:360px;width:90%;max-height:80vh;overflow-y:auto;margin:auto;text-align:left;">
+    <h3 style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--crimson);margin-bottom:14px;">Using This App</h3>
+
+    <p style="font-size:13px;font-weight:700;color:var(--ink);margin-bottom:4px;">Get it on your home screen</p>
+    <p style="font-size:13px;color:var(--grey-600);margin-bottom:4px;"><strong>iPhone (Safari):</strong> tap the Share icon at the bottom of the screen, scroll down and tap "Add to Home Screen", then tap Add.</p>
+    <p style="font-size:13px;color:var(--grey-600);margin-bottom:16px;"><strong>Android (Chrome):</strong> tap the ⋮ menu at the top right, then tap "Add to Home screen" or "Install app", and confirm.</p>
+
+    <p style="font-size:13px;font-weight:700;color:var(--ink);margin-bottom:4px;">What's in the app</p>
+    <p style="font-size:13px;color:var(--grey-600);margin-bottom:6px;"><strong>Fixtures:</strong> upcoming matches, meet and kick-off times, and the venue.</p>
+    <p style="font-size:13px;color:var(--grey-600);margin-bottom:6px;"><strong>Results:</strong> final scores, goal scorers, Player of the Match, and a match video link when one's been shared.</p>
+    <p style="font-size:13px;color:var(--grey-600);margin-bottom:6px;"><strong>Player Stats:</strong> appearances, goals, clean sheets and POTM awards for the whole squad.</p>
+    <p style="font-size:13px;color:var(--grey-600);margin-bottom:16px;"><strong>Squad:</strong> photos and squad numbers — tap a player to see their own stats.</p>
+
+    <p style="font-size:12px;color:var(--grey-400);margin-bottom:16px;">Scores update automatically while a match is live, no need to refresh.</p>
+
+    <button class="btn" style="width:100%;margin-bottom:10px;" onclick="document.getElementById('howToModal').style.display='none'; shareApp();">Share this app with another parent</button>
+    <button style="width:100%;background:none;border:1.5px solid var(--grey-200);border-radius:8px;padding:10px 20px;font-size:13px;font-weight:600;color:var(--grey-600);cursor:pointer;font-family:Inter,sans-serif;" onclick="document.getElementById('howToModal').style.display='none'">Close</button>
   </div>
 </div>
 
@@ -1606,13 +1628,11 @@ function renderFixtures() {
     return !isPublished && (!heroFixture || f.id !== heroFixture.id);
   });
 
-  // Season notice banner + dismissible home screen tip
-  let html = '<div style="background:var(--crimson);border-radius:10px;padding:14px 16px;margin-bottom:8px;font-size:13px;color:#fff;line-height:1.6;">' +
+  // Season notice banner — the old "Add to Home Screen" tip now lives in the
+  // "How to use this app" guide behind the header's help icon instead, since
+  // it's an instruction, not match content, and doesn't belong mixed in here.
+  let html = '<div style="background:var(--crimson);border-radius:10px;padding:14px 16px;margin-bottom:16px;font-size:13px;color:#fff;line-height:1.6;">' +
     'Results and player stats for the 26/27 Fareham Knights season. Fixtures and training are managed on Spond.' +
-    '</div>' +
-    '<div id="homeScreenTip" style="background:var(--gold);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:var(--ink);display:flex;align-items:center;justify-content:space-between;gap:8px;">' +
-    '<span>' + icon('share') + ' Tap <strong>Share → Add to Home Screen</strong> for quick access</span>' +
-    '<button onclick="document.getElementById(\'homeScreenTip\').style.display=\'none\'" style="background:none;border:none;cursor:pointer;font-size:16px;color:var(--ink);padding:0;line-height:1;flex-shrink:0;">' + icon('close') + '</button>' +
     '</div>';
 
   // Live score hero card
@@ -1759,7 +1779,14 @@ function squadAvatarHTML(player, imgClass, fallbackClass) {
 function renderSquadTab() {
   const container = document.getElementById('squadTabContent');
   if (!container) return;
-  const active = squad.filter(p => p.active !== false);
+  // Numerical order by shirt number — anyone without one yet falls to the
+  // end, sorted by name, rather than breaking up the sequence.
+  const active = squad.filter(p => p.active !== false).slice().sort((a, b) => {
+    const aNum = a.shirt_number != null ? a.shirt_number : Infinity;
+    const bNum = b.shirt_number != null ? b.shirt_number : Infinity;
+    if (aNum !== bNum) return aNum - bNum;
+    return a.name.localeCompare(b.name);
+  });
 
   let html = '<div class="section"><h3>Squad</h3>';
   if (active.length === 0) {
