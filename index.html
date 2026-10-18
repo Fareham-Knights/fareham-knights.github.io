@@ -546,6 +546,7 @@ let clockStart = null;  // timestamp when clock was last started
 let clockElapsed = 0;   // accumulated ms before last pause
 let clockRunning = false;
 let clockInterval = null;
+let pendingHalfTime = null; // half-time score read from a pasted WhatsApp message, saved as a snapshot with the result
 
 // Player Stats column sort state. Defaults match the previous fixed sort
 // (highest goals first).
@@ -784,6 +785,21 @@ async function renderAdminContent(email) {
 
     ${todayCard}
     ${liveCard}
+
+    <div class="section">
+      <h3>Result from WhatsApp</h3>
+      <p style="font-size:12px;color:var(--grey-500);margin-bottom:12px;">Not at the game? Paste the manager's message here. It fills in the score, scorers and half-time score in the result form below, ready for you to check and publish.</p>
+      <div class="form-group">
+        <label>Match</label>
+        <select id="waFixtureSelect"></select>
+      </div>
+      <div class="form-group">
+        <label>Pasted message</label>
+        <textarea id="waText" rows="6" placeholder="Paste the whole thing, timestamps and all" style="width:100%;padding:8px 12px;border:1.5px solid var(--grey-200);border-radius:6px;font-size:13px;font-family:'Inter',sans-serif;outline:none;resize:vertical;"></textarea>
+      </div>
+      <button class="btn" style="width:100%;" onclick="applyWhatsAppResult()">Read message into result form</button>
+      <div id="waSummary" style="display:none;margin-top:12px;font-size:13px;line-height:1.5;white-space:pre-line;"></div>
+    </div>
 
     <div class="section">
       <h3>Enter Match Result</h3>
@@ -1082,6 +1098,7 @@ async function renderAdminContent(email) {
   `;
   populateMatchSelect();
   populateEditFixtureSelect();
+  populateWaSelect();
 }
 
 // ── Data loading ────────────────────────────────────────────────────────
@@ -2758,8 +2775,10 @@ function addGoalScorerInput(playerName, goals, minute, penalty) {
   input.min = 0;
   input.style.width = '50px';
 
-  // Minute dropdown — defaults to lastGoalMinute+2 if not pre-populated
-  const defaultMinute = minute || Math.min(lastGoalMinute + 2, 50);
+  // Minute dropdown — defaults to lastGoalMinute+2 if not pre-populated.
+  // Passing minute === false means "no minute known" (e.g. a result read from
+  // a WhatsApp message), so the dropdown stays on Min rather than inventing one.
+  const defaultMinute = minute === false ? '' : (minute || Math.min(lastGoalMinute + 2, 50));
   const minuteSel = document.createElement('select');
   minuteSel.style.width = '62px';
   minuteSel.title = 'Approximate minute (optional)';
@@ -3021,8 +3040,20 @@ async function saveResult(published = false) {
       });
     }
 
+    // A half-time score read from a WhatsApp message goes in as the first
+    // snapshot, so the match story (won from behind etc.) still works for
+    // results entered after the game.
+    const ht = pendingHalfTime && pendingHalfTime.fixtureId === matchId ? pendingHalfTime : null;
+    if (ht) {
+      await sbFetch('knights_score_snapshots', {
+        method: 'POST',
+        body: JSON.stringify([{ fixture_id: matchId, knights_goals: ht.k, opponent_goals: ht.o }])
+      });
+      pendingHalfTime = null;
+    }
+
     // Record a score snapshot on every draft save so we can build a narrative
-    if (!published) {
+    if (!published || ht) {
       await sbFetch('knights_score_snapshots', {
         method: 'POST',
         body: JSON.stringify([{ fixture_id: matchId, knights_goals: knightsGoals, opponent_goals: opponentGoalsCount }])
@@ -3360,6 +3391,123 @@ async function quickPublish(fixtureId) {
     if (matchdayShareBtn) { matchdayShareBtn.style.display = 'block'; matchdayShareBtn.dataset.fixtureId = fixtureId; }
     showToast('Result published!');
   } catch(e) { showToast('Error: ' + e.message, true); }
+}
+
+// ── Result from a pasted WhatsApp message ──────────────────────────────────
+// Reads the manager's after-the-game message (final score, scorer names one
+// per line, half-time score) and fills in the normal Enter Match Result form.
+// Nothing is saved until the admin checks it and taps Save Draft / Publish.
+function parseWhatsAppResult(text) {
+  const stop = new Set(['mate','ht','ft','win','won','lost','drew','draw','cheers','thanks','thx','goals','scorers','scored','the','boys','nice','good']);
+
+  // Strip WhatsApp prefixes: "[18/10/2026, 15:02:12] Sam - Fareham: " (iPhone)
+  // and "18/10/2026, 15:02 - Sam: " (Android).
+  const lines = text.split(/\r?\n/)
+    .map(l => l.replace(/^\s*\[[^\]]*\]\s*[^:]*:\s?/, '')
+               .replace(/^\s*\d{1,2}\/\d{1,2}\/\d{2,4},?\s+\d{1,2}:\d{2}(:\d{2})?\s*-\s*[^:]*:\s?/, '')
+               .trim())
+    .filter(Boolean);
+
+  let final = null, ht = null;
+  const raw = [];
+  lines.forEach(line => {
+    const m = line.match(/(\d+)\s*[-–:]\s*(\d+)/);
+    if (m) {
+      const pair = { a: parseInt(m[1]), b: parseInt(m[2]) };
+      if (/\b(ht|half[\s-]?time|half)\b/i.test(line)) { if (!ht) ht = pair; }
+      else if (!final) final = pair;
+      return;
+    }
+    line.split(/[,&+]|\band\b/i).forEach(tok => {
+      const emoji = (tok.match(/⚽/g) || []).length;
+      const clean = tok.replace(/⚽/g, '').trim();
+      const cm = clean.match(/^(.*?)\s*(?:[x×]\s*(\d+)|\((\d+)\)|\s(\d+))$/i);
+      const count = cm ? parseInt(cm[2] || cm[3] || cm[4]) : (emoji || 1);
+      const name = (cm ? cm[1] : clean).replace(/[^A-Za-z' .-]/g, '').trim();
+      if (!name || stop.has(name.toLowerCase()) || name.split(/\s+/).length > 2) return;
+      raw.push({ raw: name, count });
+    });
+  });
+
+  const matchName = r => {
+    const l = r.toLowerCase();
+    if (/^(og|o\.g\.?|own goal)$/.test(l)) return 'Own Goal';
+    const exact = PLAYERS.find(n => n.toLowerCase() === l);
+    if (exact) return exact;
+    const loose = PLAYERS.filter(n => n.toLowerCase().startsWith(l) || l.startsWith(n.toLowerCase()));
+    return loose.length === 1 ? loose[0] : null;
+  };
+
+  // Merge repeats (Hayes, Hayes -> Hayes 2)
+  const scorers = [];
+  raw.forEach(s => {
+    const name = matchName(s.raw);
+    const key = name || s.raw.toLowerCase();
+    const existing = scorers.find(x => x.key === key);
+    if (existing) existing.count += s.count;
+    else scorers.push({ key, raw: s.raw, name, count: s.count });
+  });
+
+  const total = scorers.reduce((n, s) => n + s.count, 0);
+  // Knights score is normally given first. If the number of names matches the
+  // second number and not the first, assume the score was written the other way round.
+  const swapped = !!(final && total > 0 && total === final.b && total !== final.a);
+  return { final, ht, scorers, total, swapped };
+}
+
+function applyWhatsAppResult() {
+  const fixtureId = parseInt(document.getElementById('waFixtureSelect').value);
+  const text = document.getElementById('waText').value;
+  const out = document.getElementById('waSummary');
+  if (!fixtureId) { showToast('Pick the match first', true); return; }
+  const p = parseWhatsAppResult(text);
+  if (!p.final) { showToast("Couldn't find a score like 5-2 in that message", true); return; }
+
+  const k = p.swapped ? p.final.b : p.final.a;
+  const o = p.swapped ? p.final.a : p.final.b;
+
+  const select = document.getElementById('matchSelect');
+  select.value = fixtureId;
+  loadMatchForResult();
+  document.getElementById('knightsGoals').value = k;
+  document.getElementById('opponentGoals').value = o;
+  document.getElementById('goalScorersList').innerHTML = '';
+  document.getElementById('opponentGoalsList').innerHTML = '';
+
+  const list = document.getElementById('goalScorersList');
+  const problems = [];
+  p.scorers.forEach(s => {
+    addGoalScorerInput(s.name || '', s.count, false, false);
+    if (!s.name) {
+      list.lastElementChild.querySelector('select').style.border = '2px solid var(--red)';
+      problems.push('"' + s.raw + '" is not in the active squad. Pick the right player (or Own Goal) in the red box, or that goal will be dropped on save.');
+    }
+  });
+  if (p.total !== k) problems.push('The message names ' + p.total + ' scorer' + (p.total === 1 ? '' : 's') + ' but the score gives Fareham ' + k + '. Check for a missing or extra name.');
+  if (p.swapped) problems.push('The score looked the wrong way round against the scorers, so I read it as ' + k + '-' + o + ' to Fareham. Check that is right.');
+
+  pendingHalfTime = p.ht ? { fixtureId, k: p.swapped ? p.ht.b : p.ht.a, o: p.swapped ? p.ht.a : p.ht.b } : null;
+
+  const f = fixtures.find(x => x.id === fixtureId);
+  let msg = 'Read: Fareham ' + k + ' - ' + o + ' ' + (f ? f.opponent : '') + '.';
+  msg += pendingHalfTime ? ' Half-time ' + pendingHalfTime.k + '-' + pendingHalfTime.o + '.' : ' No half-time score found.';
+  msg += '\nNo goal minutes, Player of the Match or goalkeeper are in the message, so add those in the form if you know them. Billy is the default goalkeeper.';
+  if (problems.length) msg += '\n\nCheck before saving:\n' + problems.join('\n');
+  out.textContent = msg;
+  out.style.display = 'block';
+  out.style.color = problems.length ? 'var(--red)' : 'var(--grey-800)';
+
+  document.getElementById('resultForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function populateWaSelect() {
+  const sel = document.getElementById('waFixtureSelect');
+  if (!sel) return;
+  const today = new Date().toISOString().slice(0, 10);
+  const pending = fixtures.filter(f => f.date <= today && !(results[f.id] && results[f.id].published));
+  sel.innerHTML = '<option value="">-- Select the match --</option>' +
+    fixtures.map(f => '<option value="' + f.id + '">' + f.opponent + ' (' + f.date + ')</option>').join('');
+  if (pending.length) sel.value = pending[pending.length - 1].id;
 }
 
 function openFullResultForm(fixtureId) {
