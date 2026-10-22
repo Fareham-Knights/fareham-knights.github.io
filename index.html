@@ -1282,6 +1282,14 @@ function switchTab(name) {
   if (name === 'admin') checkAdminSession();
 }
 
+// dd mmm yy, e.g. "18 Oct 26". Used in the admin fixture dropdowns.
+function shortDate(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  if (isNaN(d)) return dateStr;
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return String(d.getDate()).padStart(2, '0') + ' ' + months[d.getMonth()] + ' ' + String(d.getFullYear()).slice(-2);
+}
+
 function formatDate(dateStr) {
   const date = new Date(dateStr + 'T00:00:00');
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -2286,7 +2294,7 @@ function populateMatchSelect() {
   fixtures.forEach(f => {
     const res = results[f.id];
     const status = !res ? '' : res.published ? ' — published' : ' — draft';
-    const label = f.opponent + ' (' + f.date + ')' + status;
+    const label = f.opponent + ' (' + shortDate(f.date) + ')' + status;
     select.innerHTML += '<option value="' + f.id + '">' + label + '</option>';
   });
 }
@@ -2297,7 +2305,7 @@ function populateAttendanceSelect() {
   const current = select.value;
   select.innerHTML = '<option value="">-- Select a fixture --</option>';
   fixtures.forEach(f => {
-    const label = f.opponent + ' (' + f.date + ')';
+    const label = f.opponent + ' (' + shortDate(f.date) + ')';
     select.innerHTML += '<option value="' + f.id + '">' + label + '</option>';
   });
   if (current) { select.value = current; renderAdminAttendance(); }
@@ -2363,7 +2371,7 @@ function populateEditFixtureSelect() {
   const current = select.value;
   select.innerHTML = '<option value="">-- Select a fixture --</option>';
   fixtures.forEach(f => {
-    const label = f.opponent + ' (' + f.date + ')';
+    const label = f.opponent + ' (' + shortDate(f.date) + ')';
     select.innerHTML += '<option value="' + f.id + '">' + label + '</option>';
   });
   select.value = current;
@@ -3506,7 +3514,7 @@ function populateWaSelect() {
   const today = new Date().toISOString().slice(0, 10);
   const pending = fixtures.filter(f => f.date <= today && !(results[f.id] && results[f.id].published));
   sel.innerHTML = '<option value="">-- Select the match --</option>' +
-    fixtures.map(f => '<option value="' + f.id + '">' + f.opponent + ' (' + f.date + ')</option>').join('');
+    fixtures.map(f => '<option value="' + f.id + '">' + f.opponent + ' (' + shortDate(f.date) + ')</option>').join('');
   if (pending.length) sel.value = pending[pending.length - 1].id;
 }
 
