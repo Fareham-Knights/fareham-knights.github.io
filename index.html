@@ -24,6 +24,9 @@
     --gold: #e8c468; --gold-dark: #cda43e; --white: #ffffff; --grey-50: #f9fafb;
     --grey-100: #f3f4f6; --grey-200: #e5e7eb; --grey-400: #9ca3af;
     --grey-600: #4b5563; --grey-800: #1f2937; --red: #dc2626;
+    --win: #15803d; --win-tint: rgba(21,128,61,0.07);
+    --draw: #b7791f; --draw-tint: rgba(183,121,31,0.08);
+    --loss: #b91c1c; --loss-tint: rgba(185,28,28,0.06);
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -131,6 +134,17 @@
     margin-top: 8px;
   }
   .match-card { background: var(--white); border-radius: 10px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.07); display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; border-left: 4px solid var(--crimson); position: relative; }
+  .match-card.win  { border-left-color: var(--win);  background: linear-gradient(90deg, var(--win-tint) 0%, var(--white) 55%); }
+  .match-card.draw { border-left-color: var(--draw); background: linear-gradient(90deg, var(--draw-tint) 0%, var(--white) 55%); }
+  .match-card.loss { border-left-color: var(--loss); background: linear-gradient(90deg, var(--loss-tint) 0%, var(--white) 55%); }
+  .match-card.win  .score-display.result { color: var(--win); }
+  .match-card.draw .score-display.result { color: var(--draw); }
+  .match-card.loss .score-display.result { color: var(--loss); }
+  .result-pill { display: inline-block; font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; border: 1px solid currentColor; line-height: 1.5; }
+  .result-pill.win  { color: var(--win); }
+  .result-pill.draw { color: var(--draw); }
+  .result-pill.loss { color: var(--loss); }
+  .match-team.away .match-meta .result-pill { margin-right: 6px; }
   .share-text {
     grid-column: 1 / -1;
     font-size: 11px;
@@ -291,9 +305,9 @@
     z-index: 999;
   }
   .form-string { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 6px; }
-  .form-string .w { color: #16a34a; }
-  .form-string .d { color: var(--grey-400); }
-  .form-string .l { color: var(--red); }
+  .form-string .w { color: var(--win); }
+  .form-string .d { color: var(--draw); }
+  .form-string .l { color: var(--loss); }
   .match-team { font-size: 14px; font-weight: 600; }
   .match-team.home { text-align: right; }
   .match-team.away { text-align: left; }
@@ -1398,9 +1412,9 @@ function buildMatchCard(f) {
 
   let result = '';
   if (isPlayed) {
-    if (res.knights > res.opponent) result = 'W';
-    else if (res.knights === res.opponent) result = 'D';
-    else result = 'L';
+    if (res.knights > res.opponent) result = 'win';
+    else if (res.knights === res.opponent) result = 'draw';
+    else result = 'loss';
   }
 
   let scoreHtml = '';
@@ -1491,10 +1505,11 @@ function buildMatchCard(f) {
   // Share is admin-only — triggered from the Enter Match Result form after saving
   const shareText = '';
 
-  return '<div class="match-card">' +
+  const resultLabel = { win: 'Win', draw: 'Draw', loss: 'Loss' };
+  return '<div class="match-card' + (result ? ' ' + result : '') + '">' +
     '<div class="match-team home">Knights<div class="match-meta">' + formatDate(f.date) + '</div></div>' +
     scoreHtml +
-    '<div class="match-team away">' + f.opponent + '<div class="match-meta">' + (result ? result : f.home_away) + '</div></div>' +
+    '<div class="match-team away">' + f.opponent + '<div class="match-meta">' + (result ? '<span class="result-pill ' + result + '">' + resultLabel[result] + '</span>' + f.home_away : f.home_away) + '</div></div>' +
     timesLine +
     locationLine +
     (!isPlayed ? buildNotesLine(f.comments, true) : '') +
@@ -1759,7 +1774,7 @@ function renderResults() {
   let html = '<div class="section"><h3>Results</h3>' +
     '<table class="table">' +
     '<tr><th>Played</th><th>Wins</th><th>Draws</th><th>Losses</th><th>GF</th><th>GA</th><th>GD</th></tr>' +
-    '<tr><td>' + s.played + '</td><td>' + s.wins + '</td><td>' + s.draws + '</td><td>' + s.losses + '</td><td>' + s.goalsFor + '</td><td>' + s.goalsAgainst + '</td><td>' + goalDiff + '</td></tr>' +
+    '<tr><td>' + s.played + '</td><td style="color:var(--win);font-weight:600;">' + s.wins + '</td><td style="color:var(--draw);font-weight:600;">' + s.draws + '</td><td style="color:var(--loss);font-weight:600;">' + s.losses + '</td><td>' + s.goalsFor + '</td><td>' + s.goalsAgainst + '</td><td>' + goalDiff + '</td></tr>' +
     '</table>' +
     (formHtml ? '<div style="margin-top:20px;"><div style="font-size:12px;font-weight:600;color:var(--grey-600);margin-bottom:6px;">FORM (LAST ' + recentForm.length + ')</div><div class="form-string">' + formHtml.trim() + '</div></div>' : '') +
     '</div>';
