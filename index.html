@@ -2302,27 +2302,57 @@ async function saveConfig() {
 }
 
 // ── Admin: fixtures and results ────────────────────────────────────────
+// Local date as YYYY-MM-DD (toISOString would use UTC and be a day out around midnight in BST).
+function localToday() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+// Builds the <option>/<optgroup> HTML for the admin fixture dropdowns so the
+// fixture you most likely want sits at the top, marked with an arrow.
+//   mode 'result': Needs a result (played, not yet published) / Upcoming / Completed
+//   mode 'edit'  : Upcoming / Past
+// Within each group the one closest to today comes first.
+function fixtureOptionsHTML(mode, suffixFn) {
+  const today = localToday();
+  const label = (f, isNext) => (isNext ? '\u25B6 ' : '') + f.opponent + ' (' + shortDate(f.date) + ')' + (suffixFn ? suffixFn(f) : '');
+  const opt = (f, isNext) => '<option value="' + f.id + '">' + label(f, isNext) + '</option>';
+  const group = (title, list, markFirst) => list.length
+    ? '<optgroup label="' + title + '">' + list.map((f, i) => opt(f, markFirst && i === 0)).join('') + '</optgroup>' : '';
+  const byDate = (a, b) => (a.kickoff_time || a.date).localeCompare(b.kickoff_time || b.date);
+  const asc = [...fixtures].sort(byDate);
+  const desc = [...asc].reverse();
+
+  if (mode === 'result') {
+    const published = f => results[f.id] && results[f.id].published === true;
+    const needs = desc.filter(f => f.date <= today && !published(f));
+    const upcoming = asc.filter(f => f.date > today && !published(f));
+    const done = desc.filter(published);
+    // The arrow goes on the first "needs a result" game, else the next upcoming one.
+    return group('Needs a result', needs, true) + group('Upcoming', upcoming, needs.length === 0) + group('Completed', done, false);
+  }
+  const upcoming = asc.filter(f => f.date >= today);
+  const past = desc.filter(f => f.date < today);
+  return group('Upcoming', upcoming, true) + group('Past', past, false);
+}
+
 function populateMatchSelect() {
   const select = document.getElementById('matchSelect');
   if (!select) return;
-  select.innerHTML = '<option value="">-- Select a match --</option>';
-  fixtures.forEach(f => {
-    const res = results[f.id];
-    const status = !res ? '' : res.published ? ' — published' : ' — draft';
-    const label = f.opponent + ' (' + shortDate(f.date) + ')' + status;
-    select.innerHTML += '<option value="' + f.id + '">' + label + '</option>';
-  });
+  const current = select.value;
+  select.innerHTML = '<option value="">-- Select a match --</option>' +
+    fixtureOptionsHTML('result', f => {
+      const res = results[f.id];
+      return !res ? '' : res.published ? ' — published' : ' — draft';
+    });
+  if (current) select.value = current;
 }
 
 function populateAttendanceSelect() {
   const select = document.getElementById('attendanceSelect');
   if (!select) return;
   const current = select.value;
-  select.innerHTML = '<option value="">-- Select a fixture --</option>';
-  fixtures.forEach(f => {
-    const label = f.opponent + ' (' + shortDate(f.date) + ')';
-    select.innerHTML += '<option value="' + f.id + '">' + label + '</option>';
-  });
+  select.innerHTML = '<option value="">-- Select a fixture --</option>' + fixtureOptionsHTML('edit');
   if (current) { select.value = current; renderAdminAttendance(); }
 }
 
@@ -2384,11 +2414,7 @@ function populateEditFixtureSelect() {
   const select = document.getElementById('editFixtureSelect');
   if (!select) return; // Exit if element doesn't exist yet
   const current = select.value;
-  select.innerHTML = '<option value="">-- Select a fixture --</option>';
-  fixtures.forEach(f => {
-    const label = f.opponent + ' (' + shortDate(f.date) + ')';
-    select.innerHTML += '<option value="' + f.id + '">' + label + '</option>';
-  });
+  select.innerHTML = '<option value="">-- Select a fixture --</option>' + fixtureOptionsHTML('edit');
   select.value = current;
 }
 
@@ -3526,10 +3552,10 @@ function applyWhatsAppResult() {
 function populateWaSelect() {
   const sel = document.getElementById('waFixtureSelect');
   if (!sel) return;
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localToday();
   const pending = fixtures.filter(f => f.date <= today && !(results[f.id] && results[f.id].published));
-  sel.innerHTML = '<option value="">-- Select the match --</option>' +
-    fixtures.map(f => '<option value="' + f.id + '">' + f.opponent + ' (' + shortDate(f.date) + ')</option>').join('');
+  sel.innerHTML = '<option value="">-- Select the match --</option>' + fixtureOptionsHTML('result');
+  // Preselect the played-but-unpublished game closest to today.
   if (pending.length) sel.value = pending[pending.length - 1].id;
 }
 
